@@ -1,0 +1,16 @@
+export { analyticsPlugin } from './plugin';
+export type { AdminNavItem, AdminPluginLike, ViewLoader } from './types';
+export { atom, AtomTypeError, Matrix, Vector } from './atomizer/model';
+export type { Atom, AtomType } from './atomizer/model';
+export { customerVector, orderVector, toAnalyticsData } from './ecw/models';
+export type { AnalyticsData, BaseOrderModel, CustomerModel } from './ecw/models';
+export { generateDemoData, PAYMENT_METHODS } from './ecw/demoData';
+export type { DemoOptions } from './ecw/demoData';
+export { computeSeries, METRICS, metricById, totals } from './series/metrics';
+export type { MetricDefinition, MetricId, Series, SeriesQuery, Unit } from './series/metrics';
+export { bucketKey, bucketKeys, lastDays, previousRange } from './series/buckets';
+export type { Granularity } from './series/buckets';
+export { createYScale, LOG_FLOOR, niceStep } from './series/scale';
+export type { ScaleKind, YScale } from './series/scale';
+export { useAnalytics, RANGES } from './useAnalytics';
+export type { Analytics, AnalyticsFilters, RangeDays } from './useAnalytics';
