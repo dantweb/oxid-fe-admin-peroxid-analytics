@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { analyticsPlugin } from '../../src';
 import {
   fetchLiveSeries,
@@ -24,13 +24,13 @@ function answering(): Executor & { calls: Record<string, unknown>[] } {
   const calls: Record<string, unknown>[] = [];
   return {
     calls,
-    execute: vi.fn(async <T>(query: string, variables?: Record<string, unknown>): Promise<T> => {
+    execute: async <T>(query: string, variables?: Record<string, unknown>): Promise<T> => {
       calls.push({ query, ...variables });
       return answer([
         ['2026-11-03', 2, 40, 1],
         ['2026-11-04', 1, 5.5, 0],
       ]) as unknown as T;
-    }),
+    },
   };
 }
 
