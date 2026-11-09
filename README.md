@@ -61,6 +61,10 @@ The plugin follows the admin's rules: no `v-html`, no browser storage, no raw co
 colour is a `var(--oxfe-…)` / `var(--oxadm-…)` token, so the project's themes style the charts), no external
 hosts (the CSP allows `'self'` only), no `console`.
 
+## Live data
+
+How the plugin talks to the shop module and when it falls back: [`docs/live-data.md`](docs/live-data.md).
+
 ## Chart design
 
 One curve at a time, so there is no legend; the readout at the crosshair lists every metric at that bucket
