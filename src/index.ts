@@ -13,4 +13,6 @@ export type { Granularity } from './series/buckets';
 export { createYScale, LOG_FLOOR, niceStep } from './series/scale';
 export type { ScaleKind, YScale } from './series/scale';
 export { useAnalytics, RANGES } from './useAnalytics';
-export type { Analytics, AnalyticsFilters, RangeDays } from './useAnalytics';
+export type { Analytics, AnalyticsFilters, RangeDays, UseAnalyticsOptions } from './useAnalytics';
+export { fetchLiveSeries, SERIES_QUERY, toSeries } from './liveSource';
+export type { Executor, LiveSeriesAnswer, SourceKind } from './liveSource';

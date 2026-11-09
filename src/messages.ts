@@ -4,6 +4,8 @@ export const en = {
   title: 'Analytics',
   demoNote:
     'Demo data: generated in the browser from a seeded model (orders, customers). No shop data is read.',
+  liveNote:
+    'Shop data: orders, sales and new customers of this shop, aggregated by the shop (module peroxid_analytics).',
   filters: {
     legend: 'Filters',
     range: 'Period',
@@ -37,6 +39,8 @@ export const de = {
   title: 'Analytics',
   demoNote:
     'Demodaten: im Browser aus einem festen Modell erzeugt (Bestellungen, Kunden). Es werden keine Shopdaten gelesen.',
+  liveNote:
+    'Shopdaten: Bestellungen, Umsatz und Neukunden dieses Shops, vom Shop aggregiert (Modul peroxid_analytics).',
   filters: {
     legend: 'Filter',
     range: 'Zeitraum',

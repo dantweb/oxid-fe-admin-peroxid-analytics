@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- **Live data:** with the OXID module `peroxid_analytics` active and the right `ADMIN_ANALYTICS_VIEW`, the page shows the
+  shop's aggregated numbers (`adminAnalyticsSeries`); otherwise the demo data, and the note says which. The plugin's
+  `setup(context)` keeps the admin's client; `useAnalytics` takes `client`, `source` and `currency`.
+
 ## 0.1.0
 
 First release: the `analytics` plugin for oxid-fe-admin.

@@ -26,6 +26,18 @@ data is read. The PEROXID project admin ([`peroxid-admin`](https://github.com/da
 The filters scope everything below them: the tiles (with the change against the previous period of the
 same length), the curve, the readout and the table.
 
+## Live data from the shop (optional)
+
+The plugin stays a demo without a backend. With the OXID module **`peroxid_analytics`**
+([`source/extensions/oxid-fe-admin-peroxid-analytics`](https://github.com/dantweb/oxid-fe-admin-peroxid-analytics) of the SDK;
+a `graphql-base` module on the admin API of `graphql-admin`) active in the shop, and an admin who holds the right
+`ADMIN_ANALYTICS_VIEW`, the page shows the **shop's numbers**: one query, `adminAnalyticsSeries(from, to, granularity)`,
+answers the buckets of the period already aggregated by the shop (orders, gross sales, new customers; no order, no
+customer, no personal data leaves it). The plugin's `setup(context)` keeps the admin's GraphQL client; each change of period
+or granularity asks the shop for the period and the one before it (`src/liveSource.ts`, `src/useAnalytics.ts`). The note
+above the filters says which it is (`data-source="live"` or `"demo"`). Without the module (the field is unknown), without
+the right (`permission_denied`) or without a session the plugin falls back to the demo data: the shop never has to be there.
+
 ## Use it in an admin project
 
 ```bash

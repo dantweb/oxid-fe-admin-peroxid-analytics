@@ -1,5 +1,6 @@
 import type { Component } from 'vue';
 import type { RouteRecordRaw } from 'vue-router';
+import type { Executor } from './liveSource';
 
 /**
  * The shape oxid-fe-admin's `AdminPlugin` (`src/shell/types.ts`, core's `IPlugin<AdminSlot>`) expects,
@@ -26,4 +27,6 @@ export interface AdminPluginLike {
   /** locale → message subtree, merged by the admin under the plugin's name */
   messages?: Record<string, Record<string, unknown>>;
   requires?: string[];
+  /** the admin calls it once at boot with its GraphQL client (core's `PluginContext`) */
+  setup?(context: { client: Executor }): void | Promise<void>;
 }

@@ -14,7 +14,7 @@ import { useAnalytics } from './useAnalytics';
  * Everything is computed in the browser from the demo data set (src/ecw/demoData.ts).
  */
 const { t, locale } = useI18n();
-const { filters, series, current, previous } = useAnalytics();
+const { filters, series, current, previous, source } = useAnalytics();
 
 const TILES: readonly MetricId[] = ['orders', 'sales', 'customers', 'salesPerCustomer'];
 
@@ -42,7 +42,9 @@ const chartTitle = computed(() =>
 <template>
   <section class="page--flat analytics" data-test="analytics">
     <h1>{{ t('analytics.title') }}</h1>
-    <p class="analytics__note" data-test="analytics-note">{{ t('analytics.demoNote') }}</p>
+    <p class="analytics__note" data-test="analytics-note" :data-source="source">
+      {{ t(source === 'live' ? 'analytics.liveNote' : 'analytics.demoNote') }}
+    </p>
     <FilterBar v-model="filters" />
     <div class="analytics__stats" data-test="analytics-stats">
       <StatTile

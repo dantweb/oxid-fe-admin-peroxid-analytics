@@ -10,6 +10,7 @@ describe('AnalyticsView', () => {
     await nextTick();
 
     expect(wrapper.get('[data-test="analytics-note"]').text()).toContain('Demo data');
+    expect(wrapper.get('[data-test="analytics-note"]').attributes('data-source')).toBe('demo');
     expect(wrapper.get('[data-test="analytics-filters"]').findAll('select')).toHaveLength(4);
     expect(wrapper.findAll('[data-test^="stat-"][data-test$="-value"]')).toHaveLength(4);
     expect(wrapper.get('[data-test="chart-title"]').text()).toBe('Sales, daily');
