@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import { CHART_KINDS } from '../series/curve';
 import { METRICS } from '../series/metrics';
 import { RANGES, type AnalyticsFilters } from '../useAnalytics';
 
@@ -38,6 +39,14 @@ const { t } = useI18n();
       <select v-model="filters.scale" data-test="filter-scale">
         <option value="linear">{{ t('analytics.scale.linear') }}</option>
         <option value="log">{{ t('analytics.scale.log') }}</option>
+      </select>
+    </label>
+    <label>
+      {{ t('analytics.filters.chartType') }}
+      <select v-model="filters.chart" data-test="filter-chart">
+        <option v-for="kind in CHART_KINDS" :key="kind" :value="kind">
+          {{ t(`analytics.chartType.${kind}`) }}
+        </option>
       </select>
     </label>
   </form>

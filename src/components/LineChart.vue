@@ -2,10 +2,10 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Granularity } from '../series/buckets';
-import { areaPath, smoothPath, type Point } from '../series/curve';
+import { areaPath, bars, linePath as lineOf, type ChartKind, type Point } from '../series/curve';
 import { formatBucket, formatValue } from '../series/format';
 import type { Unit } from '../series/metrics';
-import { createYScale, xPositions, type ScaleKind } from '../series/scale';
+import { createYScale, xCenters, xPositions, type ScaleKind } from '../series/scale';
 
 /** One row of the readout at the hovered X: every metric, the plotted one first. */
 export interface ReadoutRow {
@@ -19,6 +19,8 @@ const props = defineProps<{
   keys: readonly string[];
   values: readonly number[];
   scale: ScaleKind;
+  /** straight segments, the smooth curve, or one bar per bucket */
+  chart: ChartKind;
   unit: Unit;
   granularity: Granularity;
   name: string;
@@ -55,12 +57,23 @@ const plotBottom = HEIGHT - MARGIN.bottom;
 const yScale = computed(() =>
   createYScale({ values: props.values, kind: props.scale, top: plotTop, bottom: plotBottom }),
 );
-const xs = computed(() => xPositions(props.values.length, plotLeft, plotRight.value));
+// a line spans the plot edge to edge; bars stand in equal bands, so the first and the last stay inside the plot
+const xs = computed(() =>
+  props.chart === 'bars'
+    ? xCenters(props.values.length, plotLeft, plotRight.value)
+    : xPositions(props.values.length, plotLeft, plotRight.value),
+);
 const points = computed<Point[]>(() =>
   xs.value.map((x, at) => ({ x, y: yScale.value.y(props.values[at] ?? 0) })),
 );
-const linePath = computed(() => smoothPath(points.value));
-const wash = computed(() => areaPath(points.value, plotBottom));
+const linePath = computed(() => lineOf(points.value, props.chart));
+const wash = computed(() => areaPath(points.value, plotBottom, props.chart));
+const slot = computed(() =>
+  xs.value.length > 1 ? xs.value[1]! - xs.value[0]! : plotRight.value - plotLeft,
+);
+const barRects = computed(() =>
+  props.chart === 'bars' ? bars(points.value, plotBottom, slot.value) : [],
+);
 const last = computed(() => points.value[points.value.length - 1] ?? null);
 const lastValue = computed(() => props.values[props.values.length - 1] ?? 0);
 
@@ -215,10 +228,25 @@ const ariaLabel = computed(() =>
         </text>
       </g>
       <path v-if="wash" :d="wash" class="chart__wash" aria-hidden="true" />
-      <path :d="linePath" class="chart__line" data-test="chart-line" />
+      <g v-if="chart === 'bars'" data-test="chart-bars">
+        <rect
+          v-for="(bar, at) in barRects"
+          :key="at"
+          :x="bar.x"
+          :y="bar.y"
+          :width="bar.width"
+          :height="bar.height"
+          class="chart__bar"
+          :class="{ 'chart__bar--hovered': at === hovered }"
+          data-test="chart-bar"
+        />
+      </g>
+      <path v-else :d="linePath" class="chart__line" data-test="chart-line" />
       <g v-if="last" aria-hidden="true">
-        <circle :cx="last.x" :cy="last.y" r="6" class="chart__ring" />
-        <circle :cx="last.x" :cy="last.y" r="4" class="chart__marker" />
+        <template v-if="chart !== 'bars'">
+          <circle :cx="last.x" :cy="last.y" r="6" class="chart__ring" />
+          <circle :cx="last.x" :cy="last.y" r="4" class="chart__marker" />
+        </template>
         <text :x="last.x + 10" :y="last.y + 4" class="chart__end-label" data-test="end-label">
           {{ formatValue(lastValue, unit, locale, true) }}
         </text>
@@ -294,6 +322,13 @@ const ariaLabel = computed(() =>
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
+}
+.chart__bar {
+  fill: var(--oxfe-color-primary, #2471a3);
+  fill-opacity: 0.75;
+}
+.chart__bar--hovered {
+  fill-opacity: 1;
 }
 .chart__ring {
   fill: var(--oxfe-color-surface, #ffffff);

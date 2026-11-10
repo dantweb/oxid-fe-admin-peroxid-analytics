@@ -3,6 +3,7 @@ import { generateDemoData } from './ecw/demoData';
 import type { AnalyticsData } from './ecw/models';
 import { fetchLiveSeries, liveClient, type Executor, type SourceKind } from './liveSource';
 import { lastDays, previousRange, type Granularity } from './series/buckets';
+import type { ChartKind } from './series/curve';
 import { computeSeries, totals, type MetricId, type Series } from './series/metrics';
 import type { ScaleKind } from './series/scale';
 
@@ -15,6 +16,7 @@ export interface AnalyticsFilters {
   granularity: Granularity;
   metric: MetricId;
   scale: ScaleKind;
+  chart: ChartKind;
 }
 
 export interface Analytics {
@@ -46,8 +48,8 @@ export interface UseAnalyticsOptions {
 
 /**
  * The filter state and the series derived from it. Each change of period or granularity asks the shop's module
- * (when a client is there) and falls back to the demo data when it does not answer; the metric and the scale are
- * views on the same series and cost no request.
+ * (when a client is there) and falls back to the demo data when it does not answer; the metric, the scale and the
+ * chart type are views on the same series and cost no request.
  */
 export function useAnalytics({
   today = new Date(),
@@ -59,6 +61,7 @@ export function useAnalytics({
     granularity: 'daily',
     metric: 'sales',
     scale: 'linear',
+    chart: 'curved',
   });
   const demo = (): AnalyticsData => data ?? demoData(today);
   const range = computed(() => lastDays(today, filters.rangeDays));

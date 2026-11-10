@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { areaPath, smoothPath } from '../../src/series/curve';
+import { areaPath, bars, linearPath, linePath, smoothPath } from '../../src/series/curve';
 import { formatBucket, formatPercent, formatValue, percentChange } from '../../src/series/format';
-import { createYScale, LOG_FLOOR, niceStep, xPositions } from '../../src/series/scale';
+import { createYScale, LOG_FLOOR, niceStep, xCenters, xPositions } from '../../src/series/scale';
 
 describe('linear scale', () => {
   it('nice steps: 1, 2, 5 × 10^n', () => {
@@ -73,6 +73,42 @@ describe('x positions and curves', () => {
     expect(smoothPath([])).toBe('');
     expect(areaPath(points, 100)).toMatch(/ L100 100 L0 100 Z$/);
     expect(areaPath([points[0]!], 100)).toBe('');
+  });
+
+  it('a straight path joins the points with line segments; the wash follows the chosen line; bars have neither', () => {
+    const points = [
+      { x: 0, y: 10 },
+      { x: 50, y: 40 },
+      { x: 100, y: 20 },
+    ];
+
+    expect(linearPath(points)).toBe('M0 10 L50 40 L100 20');
+    expect(linearPath([])).toBe('');
+    expect(linePath(points, 'linear')).toBe('M0 10 L50 40 L100 20');
+    expect(linePath(points, 'curved')).toBe(smoothPath(points));
+    expect(linePath(points, 'bars')).toBe('');
+    expect(areaPath(points, 100, 'linear')).toBe('M0 10 L50 40 L100 20 L100 100 L0 100 Z');
+    expect(areaPath(points, 100, 'bars')).toBe('');
+  });
+
+  it('bars stand centred in their band, 60 % wide, from the value down to the baseline', () => {
+    const points = [
+      { x: 25, y: 10 },
+      { x: 75, y: 100 },
+    ];
+
+    expect(bars(points, 100, 50)).toEqual([
+      { x: 10, y: 10, width: 30, height: 90 },
+      { x: 60, y: 100, width: 30, height: 0 },
+    ]);
+    expect(bars([{ x: 50, y: 120 }], 100, 100)).toEqual([{ x: 20, y: 100, width: 60, height: 0 }]);
+    expect(bars([], 100, 50)).toEqual([]);
+  });
+
+  it('band centres keep the first and the last bar inside the plot', () => {
+    expect(xCenters(4, 0, 100)).toEqual([12.5, 37.5, 62.5, 87.5]);
+    expect(xCenters(1, 0, 100)).toEqual([50]);
+    expect(xCenters(0, 0, 100)).toEqual([]);
   });
 });
 

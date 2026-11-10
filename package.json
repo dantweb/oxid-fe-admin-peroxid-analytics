@@ -1,6 +1,6 @@
 {
   "name": "@dantweb/oxid-fe-admin-peroxid-analytics",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Analytics plugin for oxid-fe-admin: sales and customer curves (daily, weekly, per customer, log scale) over a demo data set generated in the browser.",
   "license": "MIT",
   "type": "module",

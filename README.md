@@ -22,6 +22,7 @@ data is read. The PEROXID project admin ([`peroxid-admin`](https://github.com/da
 | Granularity | daily · weekly (ISO weeks, named by their Monday)                                            |
 | Curve       | orders · sales · new customers · **orders per customer** · **sales per customer** (relative) |
 | Scale       | linear · logarithmic (buckets below 1 sit on the baseline)                                   |
+| Chart type  | linear (straight segments) · curved (the smooth curve, default) · bars (one per bucket)      |
 
 The filters scope everything below them: the tiles (with the change against the previous period of the
 same length), the curve, the readout and the table.
@@ -67,8 +68,9 @@ How the plugin talks to the shop module and when it falls back: [`docs/live-data
 
 ## Chart design
 
-One curve at a time, so there is no legend; the readout at the crosshair lists every metric at that bucket
-with the plotted one first. 2 px line, a 10 % wash under it, an 8 px end marker with a 2 px surface ring,
+One series at a time, so there is no legend; the readout at the crosshair lists every metric at that bucket
+with the plotted one first. The chart type draws the same series as straight segments, as the smooth curve
+(Catmull-Rom through every point) or as bars (centred in equal bands, 60 % wide, the hovered one solid). 2 px line, a 10 % wash under it, an 8 px end marker with a 2 px surface ring,
 the last value as the only direct label; hairline gridlines; axis ticks compact (12K), readouts in full.
 Keyboard: focus the chart, arrow keys / Home / End walk the buckets, Escape hides the readout. The table
 view holds every number without a pointer.

@@ -12,10 +12,12 @@ export const en = {
     granularity: 'Granularity',
     metric: 'Curve',
     scale: 'Scale',
+    chartType: 'Chart type',
   },
   range: { d7: 'Last 7 days', d30: 'Last 30 days', d90: 'Last 90 days', d180: 'Last 180 days' },
   granularity: { daily: 'Daily', weekly: 'Weekly' },
   scale: { linear: 'Linear', log: 'Logarithmic' },
+  chartType: { linear: 'Linear', curved: 'Curved', bars: 'Bars' },
   metrics: {
     orders: 'Orders',
     sales: 'Sales',
@@ -47,6 +49,7 @@ export const de = {
     granularity: 'Auflösung',
     metric: 'Kurve',
     scale: 'Skala',
+    chartType: 'Diagrammtyp',
   },
   range: {
     d7: 'Letzte 7 Tage',
@@ -56,6 +59,7 @@ export const de = {
   },
   granularity: { daily: 'Täglich', weekly: 'Wöchentlich' },
   scale: { linear: 'Linear', log: 'Logarithmisch' },
+  chartType: { linear: 'Linear', curved: 'Geschwungen', bars: 'Balken' },
   metrics: {
     orders: 'Bestellungen',
     sales: 'Umsatz',

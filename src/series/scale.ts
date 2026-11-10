@@ -84,3 +84,12 @@ export function xPositions(count: number, left: number, right: number): number[]
   const step = (right - left) / (count - 1);
   return Array.from({ length: count }, (_, at) => left + at * step);
 }
+
+/** The centres of `count` equal bands between `left` and `right`: where the bars of a bar chart stand. */
+export function xCenters(count: number, left: number, right: number): number[] {
+  if (count <= 0) {
+    return [];
+  }
+  const step = (right - left) / count;
+  return Array.from({ length: count }, (_, at) => left + (at + 0.5) * step);
+}
