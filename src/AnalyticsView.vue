@@ -9,7 +9,7 @@ import { METRICS, metricById, type MetricId } from './series/metrics';
 import { useAnalytics } from './useAnalytics';
 
 /**
- * The analytics page: one filter row (period, granularity, curve, scale), four stat tiles for the period,
+ * The analytics page: one filter row (period, granularity, curve, scale, chart type), four stat tiles for the period,
  * the curve of the chosen metric with a crosshair readout of every metric, and the same numbers as a table.
  * Everything is computed in the browser from the demo data set (src/ecw/demoData.ts).
  */
@@ -66,6 +66,7 @@ const chartTitle = computed(() =>
         :keys="series.keys"
         :values="series.values[filters.metric]"
         :scale="filters.scale"
+        :chart="filters.chart"
         :unit="metric.unit"
         :granularity="filters.granularity"
         :name="metricLabel(filters.metric)"

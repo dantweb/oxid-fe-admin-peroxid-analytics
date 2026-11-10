@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- **Chart type** filter after the scale: `linear` (straight segments), `curved` (the smooth curve, the default as
+  before) or `bars` (one bar per bucket, centred in equal bands so the first and the last stay inside the plot; the
+  hovered bar is solid). The wash follows the chosen line, bars have none; the crosshair readout, the keyboard
+  walk, the end label and the table are the same for all three. `AnalyticsFilters.chart`, `CHART_KINDS`.
+
 ## 0.2.0
 
 - **Live data:** with the OXID module `peroxid_analytics` active and the right `ADMIN_ANALYTICS_VIEW`, the page shows the

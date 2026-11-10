@@ -11,7 +11,7 @@ describe('AnalyticsView', () => {
 
     expect(wrapper.get('[data-test="analytics-note"]').text()).toContain('Demo data');
     expect(wrapper.get('[data-test="analytics-note"]').attributes('data-source')).toBe('demo');
-    expect(wrapper.get('[data-test="analytics-filters"]').findAll('select')).toHaveLength(4);
+    expect(wrapper.get('[data-test="analytics-filters"]').findAll('select')).toHaveLength(5);
     expect(wrapper.findAll('[data-test^="stat-"][data-test$="-value"]')).toHaveLength(4);
     expect(wrapper.get('[data-test="chart-title"]').text()).toBe('Sales, daily');
     expect(wrapper.get('[data-test="chart-line"]').attributes('d')).toMatch(/^M.* C/);
@@ -40,6 +40,35 @@ describe('AnalyticsView', () => {
     const ticks = wrapper.findAll('[data-test="y-tick"]').map((tick) => tick.text());
     expect(ticks[0]).toBe('€1');
     expect(ticks).toContain('€10');
+  });
+
+  it('the chart type switches between straight segments, the curve and bars; the readout works for all', async () => {
+    const wrapper = mountInAdmin(AnalyticsView);
+    const select = wrapper.get('[data-test="filter-chart"]');
+    expect((select.element as HTMLSelectElement).value).toBe('curved');
+    expect(select.findAll('option').map((option) => option.text())).toEqual([
+      'Linear',
+      'Curved',
+      'Bars',
+    ]);
+
+    await select.setValue('linear');
+    const straight = wrapper.get('[data-test="chart-line"]').attributes('d') ?? '';
+    expect(straight).toMatch(/^M[^C]*$/);
+    expect(straight.match(/ L/g)).toHaveLength(29);
+    expect(wrapper.find('[data-test="chart-bars"]').exists()).toBe(false);
+
+    await select.setValue('bars');
+    expect(wrapper.find('[data-test="chart-line"]').exists()).toBe(false);
+    const rects = wrapper.findAll('[data-test="chart-bar"]');
+    expect(rects).toHaveLength(30);
+    expect(Number(rects[0]!.attributes('x'))).toBeGreaterThanOrEqual(60); // inside the plot, not on its edge
+    await wrapper.get('[data-test="chart-svg"]').trigger('keydown', { key: 'End' });
+    expect(wrapper.find('[data-test="chart-tooltip"]').exists()).toBe(true);
+    expect(rects[29]!.classes()).toContain('chart__bar--hovered');
+
+    await select.setValue('curved');
+    expect(wrapper.get('[data-test="chart-line"]').attributes('d')).toMatch(/^M.* C/);
   });
 
   it('the stat tiles compare with the previous period', () => {

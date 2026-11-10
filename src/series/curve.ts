@@ -3,6 +3,18 @@ export interface Point {
   y: number;
 }
 
+/** How the series is drawn: straight segments, the smooth curve, or one bar per bucket. */
+export type ChartKind = 'linear' | 'curved' | 'bars';
+
+export const CHART_KINDS: readonly ChartKind[] = ['linear', 'curved', 'bars'];
+
+export interface Bar {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const fixed = (n: number): string => (Math.round(n * 100) / 100).toString();
 
 /**
@@ -30,12 +42,42 @@ export function smoothPath(points: readonly Point[]): string {
   return path;
 }
 
-/** The same curve closed down to the baseline, for the 10 % wash under the line. */
-export function areaPath(points: readonly Point[], baseline: number): string {
-  if (points.length < 2) {
+/** Straight segments from point to point. */
+export function linearPath(points: readonly Point[]): string {
+  return points
+    .map((point, at) => `${at === 0 ? 'M' : 'L'}${fixed(point.x)} ${fixed(point.y)}`)
+    .join(' ');
+}
+
+/** The line of a `linear` or `curved` chart (a bar chart has none). */
+export function linePath(points: readonly Point[], kind: ChartKind): string {
+  return kind === 'curved' ? smoothPath(points) : kind === 'linear' ? linearPath(points) : '';
+}
+
+/** The same line closed down to the baseline, for the 10 % wash under it. */
+export function areaPath(
+  points: readonly Point[],
+  baseline: number,
+  kind: ChartKind = 'curved',
+): string {
+  if (points.length < 2 || kind === 'bars') {
     return '';
   }
   const last = points[points.length - 1]!;
   const first = points[0]!;
-  return `${smoothPath(points)} L${fixed(last.x)} ${fixed(baseline)} L${fixed(first.x)} ${fixed(baseline)} Z`;
+  return `${linePath(points, kind)} L${fixed(last.x)} ${fixed(baseline)} L${fixed(first.x)} ${fixed(baseline)} Z`;
+}
+
+/**
+ * One bar per point: centred on its x, `ratio` of the slot wide (the slot is the distance between neighbours, the
+ * whole plot for a single bar), from the point down to the baseline. A value on the baseline is a bar of height 0.
+ */
+export function bars(points: readonly Point[], baseline: number, slot: number, ratio = 0.6): Bar[] {
+  const width = Math.max(1, slot * ratio);
+  return points.map((point) => ({
+    x: point.x - width / 2,
+    y: Math.min(point.y, baseline),
+    width,
+    height: Math.max(0, baseline - point.y),
+  }));
 }
