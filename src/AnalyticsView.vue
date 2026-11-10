@@ -63,7 +63,7 @@ const chartTitle = computed(() =>
         :unit="metricById(id).unit"
       />
     </div>
-    <div class="analytics__card">
+    <div class="analytics__card fold-pane-b" data-test="analytics-chart-card">
       <h2 data-test="chart-title">{{ chartTitle }}</h2>
       <p v-if="filters.scale === 'log'" class="analytics__note" data-test="log-note">
         {{ t('analytics.chart.logNote') }}

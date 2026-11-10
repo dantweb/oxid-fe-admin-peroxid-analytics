@@ -27,10 +27,12 @@ describe('foldables', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('the stat tiles and the filter row carry the admin’s fold-grid class', async () => {
+  it('the stat tiles and the filter row carry fold-grid, the chart card fold-pane-b', async () => {
     const wrapper = mountInAdmin(AnalyticsView);
     await nextTick();
     expect(wrapper.get('[data-test="analytics-stats"]').classes()).toContain('fold-grid');
     expect(wrapper.get('[data-test="analytics-filters"]').classes()).toContain('fold-grid');
+    // the chart cannot be split: the card moves wholly into the content pane
+    expect(wrapper.get('[data-test="analytics-chart-card"]').classes()).toContain('fold-pane-b');
   });
 });

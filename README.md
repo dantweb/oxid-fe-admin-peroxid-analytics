@@ -63,7 +63,7 @@ colour is a `var(--oxfe-…)` / `var(--oxadm-…)` token, so the project's theme
 hosts (the CSP allows `'self'` only), no `console`. Foldables: the admin alone reads the viewport segments and
 publishes `data-segments` on `<html>` (`2x1` book, `1x2` laptop) and the `--oxadm-pane-*` / `--oxadm-hinge-*`
 tokens; the plugin's grids and its filter row carry the admin's `fold-grid` class (they split at the hinge when the
-content spans it) and the chart keeps to the top pane on focus — no `env()` and no segment query in the plugin.
+content spans it), the chart card `fold-pane-b` (it moves into the content pane) and the chart keeps to the top pane on focus — no `env()` and no segment query in the plugin.
 
 ## Live data
 
