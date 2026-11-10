@@ -52,7 +52,7 @@ const chartTitle = computed(() =>
       {{ t(source === 'live' ? 'analytics.liveNote' : 'analytics.demoNote') }}
     </p>
     <FilterBar v-model="filters" />
-    <div class="analytics__stats" data-test="analytics-stats">
+    <div class="analytics__stats fold-grid" data-test="analytics-stats">
       <StatTile
         v-for="id in TILES"
         :id="id"

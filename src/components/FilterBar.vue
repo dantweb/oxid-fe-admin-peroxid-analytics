@@ -10,7 +10,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <form class="analytics-filters" data-test="analytics-filters" @submit.prevent>
+  <form class="analytics-filters fold-grid" data-test="analytics-filters" @submit.prevent>
     <label>
       {{ t('analytics.filters.range') }}
       <select v-model.number="filters.rangeDays" data-test="filter-range">

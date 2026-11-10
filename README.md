@@ -60,7 +60,10 @@ sources (`.ts`, `.vue`); the project's Vite compiles them — list the package i
 
 The plugin follows the admin's rules: no `v-html`, no browser storage, no raw colours in components (every
 colour is a `var(--oxfe-…)` / `var(--oxadm-…)` token, so the project's themes style the charts), no external
-hosts (the CSP allows `'self'` only), no `console`.
+hosts (the CSP allows `'self'` only), no `console`. Foldables: the admin alone reads the viewport segments and
+publishes `data-segments` on `<html>` (`2x1` book, `1x2` laptop) and the `--oxadm-pane-*` / `--oxadm-hinge-*`
+tokens; the plugin's grids and its filter row carry the admin's `fold-grid` class (they split at the hinge when the
+content spans it) and the chart keeps to the top pane on focus — no `env()` and no segment query in the plugin.
 
 ## Live data
 
