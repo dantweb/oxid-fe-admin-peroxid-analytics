@@ -8,7 +8,7 @@ data is read. The PEROXID project admin ([`peroxid-admin`](https://github.com/da
 | What                       | Where                                                                                                                                                      |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | The plugin object          | `src/plugin.ts` — `analyticsPlugin`: page `/analytics` (main navigation), a tile in the admin's `dashboard` slot, `analytics.*` texts (en, de)             |
-| The page                   | `src/AnalyticsView.vue` — filter row · four stat tiles · the curve (`src/components/LineChart.vue`) · the same numbers as a table                          |
+| The page                   | `src/AnalyticsView.vue` — filter row · five stat tiles · the curve (`src/components/LineChart.vue`) · the same numbers as a table                          |
 | Data model (atomizer port) | `src/atomizer/model.ts` — `Atom`, `Vector`, `Matrix` of [dantweb/atomizer](https://github.com/dantweb/atomizer), in TypeScript                             |
 | Models (ecwatch port)      | `src/ecw/models.ts` — `BaseOrderModel`, `CustomerModel` as [dantweb/ecwatch-core](https://github.com/dantweb/ecwatch-core) declares them                   |
 | Demo data                  | `src/ecw/demoData.ts` — the port of ecwatch-core's `demoda_data_generator.php` (anchored daily order counts, drifting basket value) plus customers; seeded |
@@ -16,13 +16,13 @@ data is read. The PEROXID project admin ([`peroxid-admin`](https://github.com/da
 
 ## Filters
 
-| Filter      | Values                                                                                       |
-| ----------- | -------------------------------------------------------------------------------------------- |
-| Period      | last 7 / 30 / 90 / 180 days                                                                  |
-| Granularity | daily · weekly (ISO weeks, named by their Monday)                                            |
-| Curve       | orders · sales · new customers · **orders per customer** · **sales per customer** (relative) |
-| Scale       | linear · logarithmic (buckets below 1 sit on the baseline)                                   |
-| Chart type  | linear (straight segments) · curved (the smooth curve, default) · bars (one per bucket)      |
+| Filter      | Values                                                                                                           |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| Period      | last 7 / 30 / 90 / 180 days                                                                                      |
+| Granularity | daily · weekly (ISO weeks, named by their Monday)                                                                |
+| Curve       | orders · sales · new customers · **orders per customer** · **sales per customer** · **average order** (relative) |
+| Scale       | linear · logarithmic (buckets below 1 sit on the baseline)                                                       |
+| Chart type  | linear (straight segments) · curved (the smooth curve, default) · bars (one per bucket)                          |
 
 The filters scope everything below them: the tiles (with the change against the previous period of the
 same length), the curve, the readout and the table.

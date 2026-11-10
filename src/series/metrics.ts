@@ -2,8 +2,12 @@ import type { Matrix } from '../atomizer/model';
 import type { AnalyticsData } from '../ecw/models';
 import { bucketKey, bucketKeys, inRange, type Granularity } from './buckets';
 
-/** What a curve shows. The two `…PerCustomer` metrics are the "relative" view: a ratio per bucket. */
-export type MetricId = 'orders' | 'sales' | 'customers' | 'ordersPerCustomer' | 'salesPerCustomer';
+/**
+ * What a curve shows. The two `…PerCustomer` metrics and `averageOrder` (sales per order) are the "relative"
+ * view: a ratio per bucket.
+ */
+export type MetricId =
+  'orders' | 'sales' | 'customers' | 'ordersPerCustomer' | 'salesPerCustomer' | 'averageOrder';
 
 export type Unit = 'count' | 'currency' | 'ratio';
 
@@ -20,6 +24,7 @@ export const METRICS: readonly MetricDefinition[] = [
   { id: 'customers', unit: 'count', relative: false },
   { id: 'ordersPerCustomer', unit: 'ratio', relative: true },
   { id: 'salesPerCustomer', unit: 'currency', relative: true },
+  { id: 'averageOrder', unit: 'currency', relative: true },
 ];
 
 export const metricById = (id: MetricId): MetricDefinition =>
@@ -78,6 +83,7 @@ export function computeSeries(data: AnalyticsData, query: SeriesQuery): Series {
       customers,
       ordersPerCustomer: ratio(orders, customers),
       salesPerCustomer: ratio(sales, customers),
+      averageOrder: ratio(sales, orders),
     },
   };
 }
@@ -94,5 +100,6 @@ export function totals(series: Series): Record<MetricId, number> {
     customers,
     ordersPerCustomer: customers > 0 ? orders / customers : 0,
     salesPerCustomer: customers > 0 ? sales / customers : 0,
+    averageOrder: orders > 0 ? sales / orders : 0,
   };
 }

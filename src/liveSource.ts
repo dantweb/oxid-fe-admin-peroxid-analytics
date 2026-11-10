@@ -42,7 +42,7 @@ export interface LiveSeries {
 const ratio = (numerators: number[], denominators: number[]): number[] =>
   numerators.map((n, at) => (denominators[at]! > 0 ? n / denominators[at]! : 0));
 
-/** The module's buckets as the plugin's `Series` (the two ratios are computed here, as for the demo data). */
+/** The module's buckets as the plugin's `Series` (the ratios are computed here, as for the demo data). */
 export function toSeries(answer: LiveSeriesAnswer): LiveSeries {
   const buckets = answer.adminAnalyticsSeries.buckets;
   const orders = buckets.map((bucket) => bucket.orders);
@@ -54,6 +54,7 @@ export function toSeries(answer: LiveSeriesAnswer): LiveSeries {
     customers,
     ordersPerCustomer: ratio(orders, customers),
     salesPerCustomer: ratio(sales, customers),
+    averageOrder: ratio(sales, orders),
   };
   return {
     series: { keys: buckets.map((bucket) => bucket.key), values },

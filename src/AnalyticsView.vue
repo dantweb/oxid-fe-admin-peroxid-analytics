@@ -9,14 +9,20 @@ import { METRICS, metricById, type MetricId } from './series/metrics';
 import { useAnalytics } from './useAnalytics';
 
 /**
- * The analytics page: one filter row (period, granularity, curve, scale, chart type), four stat tiles for the period,
+ * The analytics page: one filter row (period, granularity, curve, scale, chart type), five stat tiles for the period,
  * the curve of the chosen metric with a crosshair readout of every metric, and the same numbers as a table.
  * Everything is computed in the browser from the demo data set (src/ecw/demoData.ts).
  */
 const { t, locale } = useI18n();
 const { filters, series, current, previous, source } = useAnalytics();
 
-const TILES: readonly MetricId[] = ['orders', 'sales', 'customers', 'salesPerCustomer'];
+const TILES: readonly MetricId[] = [
+  'orders',
+  'sales',
+  'customers',
+  'salesPerCustomer',
+  'averageOrder',
+];
 
 const metric = computed(() => metricById(filters.metric));
 const metricLabel = (id: MetricId): string => t(`analytics.metrics.${id}`);

@@ -11,7 +11,7 @@ import type { AdminPluginLike } from './types';
  */
 export const analyticsPlugin = {
   name: 'analytics',
-  version: '0.3.0',
+  version: '0.4.0',
   routes: [
     {
       path: '/analytics',

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- **Average order** (gross sales per order, zero-safe): a fifth stat tile after "Sales per customer" with the change
+  against the previous period, a curve of its own, a row in the crosshair readout and a column in the table. Computed in
+  the browser for the demo and the live data alike (`MetricId` `averageOrder`, relative, currency). The totals use the
+  ratio of the sums, as the other relative metrics do.
+
 ## 0.3.0
 
 - **Chart type** filter after the scale: `linear` (straight segments), `curved` (the smooth curve, the default as

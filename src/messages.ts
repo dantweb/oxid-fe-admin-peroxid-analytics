@@ -24,6 +24,7 @@ export const en = {
     customers: 'New customers',
     ordersPerCustomer: 'Orders per customer',
     salesPerCustomer: 'Sales per customer',
+    averageOrder: 'Average order',
   },
   tiles: { delta: 'vs the previous period', noDelta: 'no previous period' },
   chart: {
@@ -66,6 +67,7 @@ export const de = {
     customers: 'Neue Kunden',
     ordersPerCustomer: 'Bestellungen pro Kunde',
     salesPerCustomer: 'Umsatz pro Kunde',
+    averageOrder: 'Durchschnittlicher Bestellwert',
   },
   tiles: { delta: 'gegenüber dem Vorzeitraum', noDelta: 'kein Vorzeitraum' },
   chart: {
