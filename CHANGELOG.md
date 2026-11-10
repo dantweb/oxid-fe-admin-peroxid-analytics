@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- **Foldables** (oxid-fe-admin sprint FOLD-1): the stat tiles and the filter row carry the admin's `fold-grid` class, so
+  with the content spanning a vertical hinge (book posture, rail collapsed) they split into two columns at the hinge; in
+  the book posture the chart card moves wholly into the content pane (`fold-pane-b`); in the laptop posture a focus
+  scrolls the chart into the top pane (`scroll-margin` from the admin's `--oxadm-hinge-start`).
+  The plugin reads only `data-segments` and the tokens the admin publishes, never the segment queries.
+
 ## 0.4.0
 
 - **Average order** (gross sales per order, zero-safe): a fifth stat tile after "Sales per customer" with the change

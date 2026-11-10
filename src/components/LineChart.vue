@@ -291,6 +291,11 @@ const ariaLabel = computed(() =>
   position: relative;
   width: 100%;
 }
+/* a foldable in the laptop posture (the admin sets data-segments): a focus scrolls the chart into the top pane */
+html[data-segments='1x2'] .chart {
+  scroll-margin-top: 0.5rem;
+  scroll-margin-bottom: calc(100vh - var(--oxadm-hinge-start, 50vh));
+}
 .chart__svg {
   display: block;
   max-width: 100%;
