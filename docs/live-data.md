@@ -35,7 +35,7 @@ query AdminAnalyticsSeries(
 - `from` / `to` are sent as `YYYY-MM-DD` of the local calendar days of the chosen period (`lastDays`), `granularity` as
   `DAILY` or `WEEKLY`. The module counts whole days, both included, and answers every bucket of the period in order
   (empty ones as zeros), weekly buckets keyed by their ISO Monday — the same keys the demo data uses (`bucketKeys`).
-- `toSeries()` maps the buckets to `Series` and computes `ordersPerCustomer` and `salesPerCustomer` in the browser,
+- `toSeries()` maps the buckets to `Series` and computes `ordersPerCustomer`, `salesPerCustomer` and `averageOrder` in the browser,
   the same way as for the demo data (`ratio`, zero-safe). The module answers the ratios too, but the plugin uses one
   code path for both sources.
 - The document selects **no personal field** (`tests/unit/liveSource.spec.ts` pins that), and the module has none to

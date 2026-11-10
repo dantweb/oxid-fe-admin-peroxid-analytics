@@ -5,14 +5,22 @@ import AnalyticsView from '../../src/AnalyticsView.vue';
 import { mountInAdmin } from './helpers';
 
 describe('AnalyticsView', () => {
-  it('renders the note, the filter row, four tiles, the curve and the table of the last 30 days', async () => {
+  it('renders the note, the filter row, five tiles, the curve and the table of the last 30 days', async () => {
     const wrapper = mountInAdmin(AnalyticsView);
     await nextTick();
 
     expect(wrapper.get('[data-test="analytics-note"]').text()).toContain('Demo data');
     expect(wrapper.get('[data-test="analytics-note"]').attributes('data-source')).toBe('demo');
     expect(wrapper.get('[data-test="analytics-filters"]').findAll('select')).toHaveLength(5);
-    expect(wrapper.findAll('[data-test^="stat-"][data-test$="-value"]')).toHaveLength(4);
+    const tiles = wrapper.findAll('[data-test^="stat-"][data-test$="-value"]');
+    expect(tiles.map((tile) => tile.attributes('data-test'))).toEqual([
+      'stat-orders-value',
+      'stat-sales-value',
+      'stat-customers-value',
+      'stat-salesPerCustomer-value',
+      'stat-averageOrder-value',
+    ]);
+    expect(wrapper.get('[data-test="stat-averageOrder-value"]').text()).toMatch(/^€/);
     expect(wrapper.get('[data-test="chart-title"]').text()).toBe('Sales, daily');
     expect(wrapper.get('[data-test="chart-line"]').attributes('d')).toMatch(/^M.* C/);
     expect(wrapper.findAll('[data-test="table-row"]')).toHaveLength(30);
@@ -90,7 +98,7 @@ describe('LineChart readout', () => {
     expect(wrapper.find('[data-test="crosshair"]').exists()).toBe(true);
     const tooltip = wrapper.get('[data-test="chart-tooltip"]');
     const rows = tooltip.findAll('[data-test^="readout-"]');
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     expect(rows[0]!.attributes('data-test')).toBe('readout-sales');
     expect(rows[0]!.find('strong').text()).toMatch(/^€/);
 

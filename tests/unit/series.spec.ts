@@ -81,6 +81,7 @@ describe('computeSeries', () => {
     expect(series.values.customers).toEqual([1, 0, 2]);
     expect(series.values.ordersPerCustomer).toEqual([2, 0, 0.5]);
     expect(series.values.salesPerCustomer).toEqual([40, 0, 2.75]);
+    expect(series.values.averageOrder).toEqual([20, 0, 5.5]);
   });
 
   it('weekly: the three days fall into one ISO week; the October order is outside the range', () => {
@@ -100,6 +101,7 @@ describe('computeSeries', () => {
       customers: 3,
       ordersPerCustomer: 1,
       salesPerCustomer: 45.5 / 3,
+      averageOrder: 45.5 / 3,
     });
     expect(
       totals({
@@ -110,24 +112,28 @@ describe('computeSeries', () => {
           customers: [],
           ordersPerCustomer: [],
           salesPerCustomer: [],
+          averageOrder: [],
         },
       }).ordersPerCustomer,
     ).toBe(0);
   });
 
-  it('the metric catalogue names the two relative metrics and their units', () => {
+  it('the metric catalogue names the three relative metrics and their units', () => {
     expect(METRICS.map((m) => m.id)).toEqual([
       'orders',
       'sales',
       'customers',
       'ordersPerCustomer',
       'salesPerCustomer',
+      'averageOrder',
     ]);
     expect(METRICS.filter((m) => m.relative).map((m) => m.id)).toEqual([
       'ordersPerCustomer',
       'salesPerCustomer',
+      'averageOrder',
     ]);
     expect(metricById('salesPerCustomer').unit).toBe('currency');
+    expect(metricById('averageOrder').unit).toBe('currency');
     expect(metricById('ordersPerCustomer').unit).toBe('ratio');
   });
 });

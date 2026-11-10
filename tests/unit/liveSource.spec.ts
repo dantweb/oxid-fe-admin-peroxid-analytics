@@ -35,7 +35,7 @@ function answering(): Executor & { calls: Record<string, unknown>[] } {
 }
 
 describe('toSeries', () => {
-  it('maps the module’s buckets to the plugin’s series and computes the two ratios zero-safe', () => {
+  it('maps the module’s buckets to the plugin’s series and computes the ratios zero-safe', () => {
     const { series, currency } = toSeries(
       answer([
         ['2026-11-03', 2, 40, 1],
@@ -51,6 +51,7 @@ describe('toSeries', () => {
       customers: [1, 0],
       ordersPerCustomer: [2, 0],
       salesPerCustomer: [40, 0],
+      averageOrder: [20, 5.5],
     });
   });
 });
