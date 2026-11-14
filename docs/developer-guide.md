@@ -145,36 +145,121 @@ the `data-field` of the control. The test `tests/unit/uiFields.spec.ts` keeps th
 
 ### 7.2 UI actions
 
-Each action has `route` `/analytics`, `right` `ADMIN_ANALYTICS_VIEW`, and `field` equal to its `id`. `format` is required.
-All other params are optional. The page registers a handler for each id when it opens. It removes the handlers when it closes.
+Each action has `route` `/analytics` and `right` `ADMIN_ANALYTICS_VIEW`. A view action has `auto: true`: the client of
+the assistant runs it at once, without a click. An export has `auto: false`: it needs a click, because a download needs
+a user action. All params are optional, except `format` of an export and `subject` of `analytics.popular.show`.
 
-| Action                            | `format` values      | Other params                                                                                                                                                                                       |
-| --------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `analytics.export.chart`          | `pdf`, `xlsx`, `csv` | `period` (`7`, `30`, `90`, `180`), `from` and `to` (date), `granularity` (`daily`, `weekly`), `curve` (a metric id or `topShare`), `scale` (`linear`, `log`), `chart` (`linear`, `curved`, `bars`) |
-| `analytics.export.table`          | `xlsx`, `csv`        | The same as `analytics.export.chart`                                                                                                                                                               |
-| `analytics.export.top_products`   | `pdf`, `xlsx`, `csv` | `period`, `from`, `to`, `limit` (integer; 3, 5, 10, 15 or 20), `measure` (`sales`, `units`, `orders`)                                                                                              |
-| `analytics.export.top_categories` | `pdf`, `xlsx`, `csv` | The same as `analytics.export.top_products`                                                                                                                                                        |
+| Action                            | `auto` | `field`                           | Params                                                                                                                                                                                                                         |
+| --------------------------------- | ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `analytics.show`                  | true   | `analytics.table.toggle`          | `period` (`7`, `30`, `90`, `180`), `from` and `to` (date), `granularity` (`daily`, `weekly`), `curve` (a metric id or `topShare`), `scale` (`linear`, `log`), `chart` (`linear`, `curved`, `bars`), `table` (`open`, `closed`) |
+| `analytics.popular.show`          | true   | `analytics.popular`               | `subject` (`products`, `categories`; required), `limit` (integer), `measure` (`sales`, `units`, `orders`), `chart` (`pie`, `bars`)                                                                                             |
+| `analytics.export.chart`          | false  | `analytics.export.chart`          | `format` (`pdf`, `xlsx`, `csv`; required), then the params of `analytics.show`                                                                                                                                                 |
+| `analytics.export.table`          | false  | `analytics.export.table`          | `format` (`xlsx`, `csv`; required), then the params of `analytics.show`                                                                                                                                                        |
+| `analytics.export.top_products`   | false  | `analytics.export.top_products`   | `format` (`pdf`, `xlsx`, `csv`; required), `period`, `from`, `to`, `limit`, `measure`, `chart` (`pie`, `bars`)                                                                                                                 |
+| `analytics.export.top_categories` | false  | `analytics.export.top_categories` | The same as `analytics.export.top_products`                                                                                                                                                                                    |
 
-A date has the form `YYYY-MM-DD`. A custom period has at most 366 days.
+A date has the form `YYYY-MM-DD`. A custom period has at most 366 days. `limit` must be 3, 5, 10, 15 or 20. Another
+value keeps the current Top N.
+
+The param `chart` has two meanings. In `analytics.show` and in the exports of the chart and the table, it is the chart
+type of the curve. In `analytics.popular.show` and in the ranking exports, it is the pie or the bars of a section.
+
+### 7.2.1 The inventory of the controls
+
+`PAGE_CONTROLS` in `src/uiActions.ts` lists each `data-field` of the page and the action param that sets it. The test
+`tests/unit/uiActions.spec.ts` holds the table to the page. A new control without an entry fails the test.
+
+| Control (`data-field`)                            | Action                                                           | Param                       |
+| ------------------------------------------------- | ---------------------------------------------------------------- | --------------------------- |
+| `analytics.filter.range`                          | `analytics.show`                                                 | `period`, `from`, `to`      |
+| `analytics.filter.granularity`                    | `analytics.show`                                                 | `granularity`               |
+| `analytics.filter.metric`                         | `analytics.show`                                                 | `curve`                     |
+| `analytics.filter.scale`                          | `analytics.show`                                                 | `scale`                     |
+| `analytics.filter.chartType`                      | `analytics.show`                                                 | `chart`                     |
+| `analytics.table.toggle`                          | `analytics.show`                                                 | `table`                     |
+| `analytics.products.topN`, `.measure`, `.chart`   | `analytics.popular.show` (`subject` `products`)                  | `limit`, `measure`, `chart` |
+| `analytics.categories.topN`, `.measure`, `.chart` | `analytics.popular.show` (`subject` `categories`)                | `limit`, `measure`, `chart` |
+| `analytics.export.*` (four menus)                 | The export action of the same name                               | `format`                    |
+| `analytics.popular`                               | Display only: the block that `analytics.popular.show` scrolls to | None                        |
 
 ### 7.3 How a handler works
 
-1. The admin opens `/analytics` with the args as the route query. `routeFilters.ts` reads the filters.
-2. The handler applies the args to the filters, and N and the measure to the ranking section.
-3. The handler waits until the data for the new state is ready (`settled()`).
-4. The handler makes the export in that state.
+1. The admin opens `/analytics` with the args as the route query.
+2. The page reads the query, but not the args of an export or of `analytics.popular.show`. Those args hold `format` or
+   `subject`. Their `chart` can mean the pie or the bars, so the handler owns that state.
+3. The handler applies the args to the page and to the section (`applyPage`, `applyRanking`).
+4. The handler waits until the data for the new state is ready (`settled()`).
+5. A view action stops here. `analytics.popular.show` first scrolls to the section.
+6. An export makes the file in that state.
 
-The handler of `analytics.export.table` refuses `pdf`. The admin then shows the error "failed".
+The handler of `analytics.export.table` refuses `pdf`. The handler of `analytics.popular.show` refuses a `subject` that
+is not `products` or `categories`. The admin then shows the error "failed".
 
 The plugin does not import the admin. It gets the registry with `inject('oxadm:ui-actions')`. Without an admin that has
 this key, the handlers are not registered. The page still works.
 
-### 7.4 Procedure: add a UI action
+### 7.4 Procedure: add a control or a UI action
 
 1. Add a field for the control in `src/uiFields.ts`. Use the id as `data-field` in the template.
-2. Add the descriptor in `src/uiActions.ts`.
-3. Register the handler in `AnalyticsView.vue`.
-4. Update `tests/unit/exportView.spec.ts` and `tests/unit/uiFields.spec.ts`.
+2. Add the control to `PAGE_CONTROLS` in `src/uiActions.ts`, with the action param that sets it.
+3. Add the param to the descriptor in `src/uiActions.ts`. Add the key to the route query in `src/routeState.ts` if the control is part of the page state.
+4. Apply the param in the handler in `AnalyticsView.vue`.
+5. Update `tests/unit/uiActions.spec.ts`, `tests/unit/routeState.spec.ts` and `tests/unit/uiFields.spec.ts`.
+6. Add the case to `e2e/analytics-control.spec.ts`.
+
+## 7A The layout grid
+
+The page has one layout grid. The filter row and the stat row use the same columns. Filter n and tile n have the same left
+and right edge at every width. The chart card and the two ranking sections have the same outer edges and the same gap.
+
+### 7A.1 How it works
+
+- `section.analytics` is a **container** (`container: analytics / inline-size`). The steps follow its width, not the width
+  of the viewport. The width of the content changes when the sidebar of the admin is open or folded.
+- The custom property `--analytics-gap` (1 rem) is the one gap of the page.
+- The class `.analytics-row` makes a grid of `--analytics-columns` columns of `minmax(0, 1fr)`. The filter form
+  (`FilterBar`) and the stat row both have this class.
+- `.analytics-row > *` has `min-width: 0`. A control or a tile cannot make a column wider than its share.
+- The value of a tile (`.stat__value`) has the font size `clamp(1.25rem, 2.2cqi, 1.875rem)`. It follows the container, so the
+  value fits a column of the five-column step.
+
+### 7A.2 The steps
+
+| Width of the container     | Columns of the filter row and the stat row | Ranking sections              |
+| -------------------------- | ------------------------------------------ | ----------------------------- |
+| Less than 26 rem           | 1                                          | 1 column, one under the other |
+| 26 rem to less than 40 rem | 2                                          | 1 column                      |
+| 40 rem to less than 48 rem | 3                                          | 1 column                      |
+| 48 rem to less than 64 rem | 3                                          | 2 columns, side by side       |
+| 64 rem or more             | 5                                          | 2 columns, side by side       |
+
+The controls of a ranking section (Show, Rank by, Chart) have a grid of their own. The section is a container too
+(`container: popular / inline-size`). The controls are in 3 columns when the section is 28 rem wide or wider. They are in
+one column when it is narrower. They are never in a ragged 2 + 1.
+
+The foldable layout of the admin (class `fold-grid`) stays on the filter row and on the stat row. Both rows have the same
+class, so both rows keep the same columns in that posture.
+
+### 7A.3 Procedure: add a control to the filter row or a tile
+
+1. Add the element as a direct child of the row. Do not wrap it.
+2. Do not set a width on it. The grid sets the width.
+3. Make the filter row and the stat row have the same number of items. Otherwise the items no longer pair by position.
+4. Run `e2e/analytics-grid.spec.ts`.
+
+### 7A.4 The test
+
+`e2e/analytics-grid.spec.ts` measures the bounding boxes in the browser. The harness takes 14 rem (sidebar open) or 4 rem
+(sidebar folded) from the page: `?sidebar=open` or `?sidebar=folded`. The widths are 1440, 1280, 1024, 768 and 360 px. At
+360 px only the folded case applies, because a phone has a drawer and no sidebar.
+
+The test checks for each case:
+
+- filter n and tile n have equal left and right edges (tolerance 1 px);
+- the chart card and the ranking sections have the outer edges of the rows, and the gap between the sections equals the gap of the rows;
+- there is no sideways scroll, and no tile or control is wider than its box;
+- the controls of a ranking section are in one row of three or in one column of three;
+- axe finds no violation.
 
 ## 8 Tests
 
@@ -198,7 +283,9 @@ The e2e specs check:
 - the legend lines of the ranking PDFs;
 - the distinct colours of the pie slices;
 - the keyboard use of the menu;
-- the UI action handlers;
+- the UI action handlers, with the page state equal to the args (`e2e/analytics-control.spec.ts`);
+- a link that holds the whole state;
+- the owner's case: the PDF of the top 3 categories as bars, with the bars image and the legend;
 - axe in the light and the dark theme at 1280 and 360 pixels.
 
 CI (`.github/workflows/ci.yml`) has two jobs. The job `check` runs lint, type check, knip, `npm audit` and the unit tests with
