@@ -115,6 +115,9 @@ describe('x positions and curves', () => {
 describe('formatting', () => {
   it('counts, euros and ratios; compact only on the axis above ten thousand', () => {
     expect(formatValue(1234, 'count', 'en')).toBe('1,234');
+    expect(formatValue(42.34, 'percent', 'en')).toBe('42.3 %');
+    expect(formatValue(42.34, 'percent', 'de', true)).toBe('42,3 %');
+    expect(formatValue(50, 'percent', 'en', true)).toBe('50 %');
     expect(formatValue(12_345, 'count', 'en', true)).toBe('12K');
     expect(formatValue(12.5, 'currency', 'en')).toBe('€12.50');
     expect(formatValue(12_345, 'currency', 'en', true)).toBe('€12K');

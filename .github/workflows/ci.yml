@@ -26,3 +26,19 @@ jobs:
       # never waived: an advisory is patched or pinned, not ignored
       - run: npm audit
       - run: npm run test:coverage
+
+  e2e:
+    name: Mocked e2e with axe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # the harness page (e2e/harness) is started by the Playwright config; no shop is needed
+      - run: npx playwright test -c e2e/playwright.config.ts
+        env:
+          CI: 'true'

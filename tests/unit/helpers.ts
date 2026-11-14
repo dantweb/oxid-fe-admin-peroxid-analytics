@@ -20,7 +20,32 @@ export function mountInAdmin<T extends Component>(
     routes: [
       { path: '/', component: { template: '<div />' } },
       { path: '/analytics', component: { template: '<div />' } },
+      { path: '/catalogue/products/:id', component: { template: '<div />' } },
+      { path: '/catalogue/categories/:id', component: { template: '<div />' } },
     ],
   });
   return mount(component, { ...options, global: { plugins: [i18n, router], ...options.global } });
+}
+
+/** Mounts a component with the router already at `url` (a deep link), and hands the router back. */
+export async function mountAtRoute<T extends Component>(component: T, url: string) {
+  const i18n = createI18n({
+    legacy: false,
+    locale: 'en',
+    fallbackLocale: 'en',
+    messages: { en: { analytics: en }, de: { analytics: de } },
+  });
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: { template: '<div />' } },
+      { path: '/analytics', component: { template: '<div />' } },
+      { path: '/catalogue/products/:id', component: { template: '<div />' } },
+      { path: '/catalogue/categories/:id', component: { template: '<div />' } },
+    ],
+  });
+  await router.push(url);
+  await router.isReady();
+  const wrapper = mount(component, { global: { plugins: [i18n, router] } });
+  return { wrapper, router };
 }

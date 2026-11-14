@@ -2,15 +2,28 @@ import type { Unit } from './metrics';
 import type { Granularity } from './buckets';
 
 /** Axis ticks are compact (12K), readouts in full (12,345). */
-export function formatValue(value: number, unit: Unit, locale: string, compact = false): string {
+export function formatValue(
+  value: number,
+  unit: Unit,
+  locale: string,
+  compact = false,
+  currency = 'EUR',
+): string {
   if (unit === 'currency') {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'EUR',
+      currency,
       maximumFractionDigits: compact ? 0 : 2,
       minimumFractionDigits: compact ? 0 : 2,
       notation: compact && Math.abs(value) >= 10_000 ? 'compact' : 'standard',
     }).format(value);
+  }
+  if (unit === 'percent') {
+    const text = new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: compact ? 0 : 1,
+    }).format(value);
+    return `${text} %`;
   }
   if (unit === 'ratio') {
     return new Intl.NumberFormat(locale, {
@@ -44,6 +57,15 @@ export function formatPercent(value: number, locale: string): string {
   const text = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 1,
     signDisplay: 'always',
+  }).format(value);
+  return `${text} %`;
+}
+
+/** A share in percent with one decimal and the language's separator: `42.3 %`, `42,3 %`. */
+export function formatShare(value: number, locale: string): string {
+  const text = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
   }).format(value);
   return `${text} %`;
 }

@@ -2,6 +2,9 @@ import { computed, reactive, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { generateDemoData } from './ecw/demoData';
 import type { AnalyticsData } from './ecw/models';
 import { fetchLiveSeries, liveClient, type Executor, type SourceKind } from './liveSource';
+import type { ShareContext } from './useTopShare';
+import type { PopularContext } from './usePopular';
+import type { CurveId } from './series/shareCurve';
 import { lastDays, previousRange, type Granularity } from './series/buckets';
 import type { ChartKind } from './series/curve';
 import { computeSeries, totals, type MetricId, type Series } from './series/metrics';
@@ -13,11 +16,24 @@ export const RANGES: readonly RangeDays[] = [7, 30, 90, 180];
 
 export interface AnalyticsFilters {
   rangeDays: RangeDays;
+  /** a custom period (`YYYY-MM-DD`, both set) instead of the last `rangeDays` days; empty for a preset period */
+  from: string;
+  to: string;
   granularity: Granularity;
-  metric: MetricId;
+  metric: CurveId;
   scale: ScaleKind;
   chart: ChartKind;
 }
+
+export const DEFAULT_FILTERS: AnalyticsFilters = {
+  rangeDays: 30,
+  from: '',
+  to: '',
+  granularity: 'daily',
+  metric: 'sales',
+  scale: 'linear',
+  chart: 'curved',
+};
 
 export interface Analytics {
   filters: AnalyticsFilters;
@@ -30,7 +46,18 @@ export interface Analytics {
   currency: Ref<string>;
   /** resolves when the first live attempt (if any) is settled — for tests and the "loading" state */
   ready: Promise<void>;
+  /** resolves when the request for the latest period and granularity is answered */
+  settled: () => Promise<void>;
+  /** what the popular products and categories share with the page: the period, the demo data, the client */
+  popularContext: PopularContext;
+  /** the popular context and the granularity, for the curve "Share of top N products" */
+  shareContext: ShareContext;
 }
+
+const dayAt = (key: string): Date => {
+  const [y, m, d] = key.split('-').map(Number) as [number, number, number];
+  return new Date(y, m - 1, d);
+};
 
 let cached: AnalyticsData | null = null;
 
@@ -56,15 +83,13 @@ export function useAnalytics({
   data,
   client = liveClient(),
 }: UseAnalyticsOptions = {}): Analytics {
-  const filters = reactive<AnalyticsFilters>({
-    rangeDays: 30,
-    granularity: 'daily',
-    metric: 'sales',
-    scale: 'linear',
-    chart: 'curved',
-  });
+  const filters = reactive<AnalyticsFilters>({ ...DEFAULT_FILTERS });
   const demo = (): AnalyticsData => data ?? demoData(today);
-  const range = computed(() => lastDays(today, filters.rangeDays));
+  const range = computed(() =>
+    filters.from !== '' && filters.to !== ''
+      ? { from: dayAt(filters.from), to: dayAt(filters.to) }
+      : lastDays(today, filters.rangeDays),
+  );
   const query = computed(() => ({ ...range.value, granularity: filters.granularity }));
   const previousQuery = computed(() => ({
     ...previousRange(range.value),
@@ -98,10 +123,26 @@ export function useAnalytics({
   }
 
   const ready = refresh();
-  watch(query, () => void refresh());
+  let pending = ready;
+  watch(query, () => {
+    pending = refresh();
+  });
 
   const series = computed(() => live.value?.current ?? demoSeries.value);
   const current = computed(() => totals(series.value));
   const previous = computed(() => totals(live.value?.previous ?? demoPrevious.value));
-  return { filters, series, current, previous, source, currency, ready };
+  const popularContext: PopularContext = { range, data: demo, client };
+  const shareContext: ShareContext = { ...popularContext, granularity: () => filters.granularity };
+  return {
+    filters,
+    series,
+    current,
+    previous,
+    source,
+    currency,
+    ready,
+    settled: () => pending,
+    popularContext,
+    shareContext,
+  };
 }
