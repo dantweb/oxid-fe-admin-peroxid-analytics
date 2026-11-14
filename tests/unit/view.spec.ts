@@ -271,4 +271,28 @@ describe('AnalyticsView and the route query', () => {
     expect(router.currentRoute.value.query.from).toBeUndefined();
     expect(router.currentRoute.value.query.period).toBe('7');
   });
+
+  it('opens with the table and the ranking choices of a deep link, and follows them while the page is open', async () => {
+    const { wrapper, router } = await mountAtRoute(
+      AnalyticsView,
+      '/analytics?table=open&pTop=10&cChart=bars',
+    );
+    const products = '[data-test="popular-products"] [data-test="popular-topn"]';
+    const categories = '[data-test="popular-categories"] [data-test="popular-chart"]';
+
+    expect((wrapper.get('[data-test="analytics-table"]').element as HTMLDetailsElement).open).toBe(
+      true,
+    );
+    expect((wrapper.get(products).element as HTMLSelectElement).value).toBe('10');
+    expect((wrapper.get(categories).element as HTMLSelectElement).value).toBe('bars');
+
+    await router.push('/analytics?table=closed&pTop=3&cChart=pie');
+    await flushPromises();
+
+    expect((wrapper.get('[data-test="analytics-table"]').element as HTMLDetailsElement).open).toBe(
+      false,
+    );
+    expect((wrapper.get(products).element as HTMLSelectElement).value).toBe('3');
+    expect((wrapper.get(categories).element as HTMLSelectElement).value).toBe('pie');
+  });
 });

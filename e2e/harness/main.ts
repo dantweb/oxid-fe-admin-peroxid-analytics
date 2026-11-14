@@ -39,6 +39,7 @@ const router = createRouter({
     { path: '/catalogue/categories/:id', component: stub },
   ],
 });
+// the address of the harness page is the deep link: its query is the route query of the analytics page
 const i18n = createI18n({
   legacy: false,
   locale,
@@ -46,7 +47,7 @@ const i18n = createI18n({
   messages: { en: { analytics: en }, de: { analytics: de } },
 });
 
-createApp({ render: () => h('main', [h(AnalyticsView)]) })
+const app = createApp({ render: () => h('main', [h(AnalyticsView)]) })
   .use(i18n)
   .use(router)
   .provide(UI_ACTIONS_KEY, {
@@ -54,5 +55,7 @@ createApp({ render: () => h('main', [h(AnalyticsView)]) })
       window.__uiActions.set(id, handler);
       return () => window.__uiActions.delete(id);
     },
-  })
-  .mount('#app');
+  });
+void router
+  .push({ path: '/analytics', query: Object.fromEntries(query) })
+  .then(() => app.mount('#app'));
