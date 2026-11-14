@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { pieArcs, sliceTone } from '../series/pie';
+import { pieArcs } from '../series/pie';
 import { formatShare } from '../series/format';
 
 /** One piece of the pie as the page names it: the label and the value are already in the language of the page. */
@@ -20,7 +20,8 @@ export interface PieSlice {
  * every slice (label, value, share), because a colour alone carries no meaning. The pointer or the focus on a slice
  * or a legend entry reads one slice out.
  */
-const props = defineProps<{ slices: PieSlice[]; name: string }>();
+/** `colours` has one entry per slice (the page's palette): the slice and its legend swatch are painted with it. */
+const props = defineProps<{ slices: PieSlice[]; colours: string[]; name: string }>();
 const { locale } = useI18n();
 
 const arcs = computed(() => pieArcs(props.slices.map((slice) => slice.share)));
@@ -36,16 +37,6 @@ const readout = computed(() => {
     : `${slice.label}: ${slice.valueText} (${formatShare(slice.share, locale.value)})`;
 });
 
-const toneStyle = (index: number, kind: PieSlice['kind']): Record<string, string | number> => {
-  if (kind === 'others') {
-    return {};
-  }
-  const tone = sliceTone(index);
-  return {
-    '--slice-base': `var(--oxfe-color-${tone.base}, #2471a3)`,
-    '--slice-strength': tone.strength,
-  };
-};
 const sliceFor = (index: number): PieSlice => props.slices[index]!;
 </script>
 
@@ -67,10 +58,9 @@ const sliceFor = (index: number): PieSlice => props.slices[index]!;
           r="100"
           class="pie__slice"
           :class="{
-            'pie__slice--others': sliceFor(arc.index).kind === 'others',
             'pie__slice--active': active === sliceFor(arc.index).key,
           }"
-          :style="toneStyle(arc.index, sliceFor(arc.index).kind)"
+          :style="{ fill: colours[arc.index] }"
           data-test="pie-slice"
           @pointerenter="active = sliceFor(arc.index).key"
           @pointerleave="active = null"
@@ -80,10 +70,9 @@ const sliceFor = (index: number): PieSlice => props.slices[index]!;
           :d="arc.path ?? ''"
           class="pie__slice"
           :class="{
-            'pie__slice--others': sliceFor(arc.index).kind === 'others',
             'pie__slice--active': active === sliceFor(arc.index).key,
           }"
-          :style="toneStyle(arc.index, sliceFor(arc.index).kind)"
+          :style="{ fill: colours[arc.index] }"
           data-test="pie-slice"
           @pointerenter="active = sliceFor(arc.index).key"
           @pointerleave="active = null"
@@ -108,12 +97,7 @@ const sliceFor = (index: number): PieSlice => props.slices[index]!;
           @focus="active = slice.key"
           @blur="active = null"
         >
-          <span
-            class="pie__swatch"
-            :style="toneStyle(at, slice.kind)"
-            :class="{ 'pie__swatch--others': slice.kind === 'others' }"
-            aria-hidden="true"
-          />
+          <span class="pie__swatch" :style="{ background: colours[at] }" aria-hidden="true" />
           <span class="pie__label">{{ slice.label }}</span>
           <span class="pie__value">{{ slice.valueText }}</span>
           <span class="pie__share">{{ formatShare(slice.share, locale) }}</span>
@@ -136,17 +120,9 @@ const sliceFor = (index: number): PieSlice => props.slices[index]!;
   height: auto;
 }
 .pie__slice {
-  fill: color-mix(
-    in srgb,
-    var(--slice-base, var(--oxfe-color-primary, #2471a3)) calc(var(--slice-strength, 100) * 1%),
-    var(--oxfe-color-surface, #ffffff)
-  );
+  /* the fill is the slice's colour from the palette (inline); the stroke separates the slices */
   stroke: var(--oxfe-color-surface, #ffffff);
   stroke-width: 1.5;
-}
-.pie__slice--others {
-  fill: var(--oxfe-color-text-muted, #666666);
-  fill-opacity: 0.45;
 }
 .pie__slice--active {
   stroke: var(--oxfe-color-text, #333333);
@@ -190,17 +166,8 @@ const sliceFor = (index: number): PieSlice => props.slices[index]!;
   width: 0.75rem;
   height: 0.75rem;
   align-self: center;
-  background: color-mix(
-    in srgb,
-    var(--slice-base, var(--oxfe-color-primary, #2471a3)) calc(var(--slice-strength, 100) * 1%),
-    var(--oxfe-color-surface, #ffffff)
-  );
   border: 1px solid var(--oxfe-color-border, #e0e0e0);
   border-radius: 2px;
-}
-.pie__swatch--others {
-  background: var(--oxfe-color-text-muted, #666666);
-  opacity: 0.45;
 }
 .pie__label {
   overflow-wrap: anywhere;

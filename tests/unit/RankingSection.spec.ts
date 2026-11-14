@@ -215,4 +215,20 @@ describe('RankingSection', () => {
       'demo',
     );
   });
+
+  it('every slice of the pie has its own colour, "Others" included, and the legend swatches are the same colours', async () => {
+    const { wrapper } = await mountSection();
+    await wrapper.get('[data-test="popular-topn"]').setValue('15');
+
+    const fills = wrapper
+      .findAll('[data-test="pie-slice"]')
+      .map((slice) => /fill: ([^;]+)/.exec(slice.attributes('style') ?? '')?.[1]);
+    const swatches = wrapper
+      .findAll('.pie__swatch')
+      .map((swatch) => /background: ([^;]+)/.exec(swatch.attributes('style') ?? '')?.[1]);
+
+    expect(fills).toHaveLength(16);
+    expect(new Set(fills).size).toBe(16);
+    expect(swatches).toEqual(fills);
+  });
 });

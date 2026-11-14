@@ -19,8 +19,10 @@ const slice = (
 const cells = (item: DOMWrapper<Element>): string[] =>
   item.findAll('span:not(.pie__swatch)').map((cell) => cell.text());
 
-const mountPie = (slices: PieSlice[]) =>
-  mountInAdmin(PieChart, { props: { slices, name: 'Share of sales' } });
+const mountPie = (
+  slices: PieSlice[],
+  colours: string[] = slices.map((_, at) => `rgb(${at}, 100, 100)`),
+) => mountInAdmin(PieChart, { props: { slices, colours, name: 'Share of sales' } });
 
 describe('PieChart', () => {
   it('draws one slice per item with a share and names the chart for assistive technology', () => {
@@ -100,5 +102,29 @@ describe('PieChart', () => {
     const wrapper = mountPie([]);
 
     expect(wrapper.find('[data-test="pie-svg"]').exists()).toBe(false);
+  });
+
+  it('paints every slice and its legend swatch with the colour it is given', () => {
+    const wrapper = mountPie(
+      [slice('a', 'Alpha', 50), slice('b', 'Beta', 30), slice('others', 'Others', 20, 'others')],
+      ['rgb(10, 20, 30)', 'rgb(40, 50, 60)', 'rgb(70, 80, 90)'],
+    );
+
+    const fills = wrapper.findAll('[data-test="pie-slice"]').map((el) => el.attributes('style'));
+    const swatches = wrapper.findAll('.pie__swatch').map((el) => el.attributes('style'));
+
+    expect(fills[0]).toContain('fill: rgb(10, 20, 30)');
+    expect(fills[2]).toContain('fill: rgb(70, 80, 90)');
+    expect(swatches[1]).toContain('background: rgb(40, 50, 60)');
+    expect(swatches[2]).toContain('background: rgb(70, 80, 90)');
+  });
+
+  it('a zero slice keeps its colour in the legend', () => {
+    const wrapper = mountPie(
+      [slice('a', 'Alpha', 100), slice('z', 'Zero', 0)],
+      ['rgb(1, 1, 1)', 'rgb(2, 2, 2)'],
+    );
+
+    expect(wrapper.findAll('.pie__swatch')[1]!.attributes('style')).toContain('rgb(2, 2, 2)');
   });
 });

@@ -1,7 +1,7 @@
 import { dayKey } from '../series/buckets';
 import type { ChartPng } from './chartImage';
 import { downloadFile, MIME } from './download';
-import { toPdf } from './pdf';
+import { toPdf, type PdfLegendEntry } from './pdf';
 import type { ExportTable } from './table';
 
 export interface PdfTexts {
@@ -18,6 +18,7 @@ export async function exportPdf(
   image: ChartPng | null,
   fileName: string,
   texts: PdfTexts,
+  legend: PdfLegendEntry[] = [],
 ): Promise<void> {
   const bytes = await toPdf(table, {
     locale: texts.locale,
@@ -25,6 +26,7 @@ export async function exportPdf(
     created: texts.created(dayKey(new Date())),
     pageOf: texts.pageOf,
     image,
+    legend,
   });
   downloadFile(fileName, bytes, MIME.pdf);
 }

@@ -70,24 +70,3 @@ export function pieArcs(
   });
   return arcs;
 }
-
-export interface SliceTone {
-  /** which theme colour the slice is mixed from */
-  base: 'primary' | 'accent';
-  /** percent of the colour in the mix with the surface */
-  strength: number;
-}
-
-const TONE_STEP = 7;
-const TONE_FLOOR = 30;
-
-/**
- * Slices alternate between two theme colours and fade in steps, so neighbours differ. The colour only helps the eye:
- * every slice is named in the legend and the readout.
- */
-export function sliceTone(index: number): SliceTone {
-  return {
-    base: index % 2 === 0 ? 'primary' : 'accent',
-    strength: Math.max(TONE_FLOOR, 100 - Math.floor(index / 2) * TONE_STEP),
-  };
-}
