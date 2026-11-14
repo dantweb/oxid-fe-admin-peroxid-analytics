@@ -245,7 +245,12 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
       <div class="analytics__table-bar">
         <details class="analytics__table" data-test="analytics-table">
           <summary>{{ t('analytics.table.show') }}</summary>
-          <div class="table-scroll">
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            :aria-label="t('analytics.table.region')"
+          >
             <table>
               <thead>
                 <tr>
@@ -296,6 +301,7 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
   gap: 1rem;
 }
 .analytics__card {
+  min-width: 0; /* a grid item may shrink below its widest table: the table scrolls inside its box */
   padding: 1.5rem;
   background: var(--oxfe-color-surface, #ffffff);
   border-radius: var(--oxfe-radius-lg, 8px);
@@ -326,6 +332,7 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
 }
 .analytics__table-bar {
   position: relative;
+  min-width: 0;
 }
 .analytics__table-export {
   position: absolute;

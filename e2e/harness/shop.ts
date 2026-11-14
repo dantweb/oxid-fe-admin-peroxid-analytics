@@ -79,22 +79,31 @@ function ranking(
   };
 }
 
-function series(from: string, to: string) {
-  const buckets = [];
-  for (
-    let day = new Date(`${from}T00:00:00`);
-    day <= new Date(`${to}T00:00:00`);
-    day.setDate(day.getDate() + 1)
-  ) {
-    const at = day.getDate();
-    buckets.push({
-      key: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(at).padStart(2, '0')}`,
-      orders: 8 + (at % 7),
-      sales: 700 + at * 23,
-      customers: 2 + (at % 4),
-    });
+const dayKey = (day: Date): string =>
+  `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+
+/** The ISO Monday of a day, as the module keys a weekly bucket. */
+function mondayOf(day: Date): Date {
+  const monday = new Date(day);
+  monday.setDate(day.getDate() - ((day.getDay() + 6) % 7));
+  return monday;
+}
+
+function series(from: string, to: string, granularity: string) {
+  const buckets = new Map<
+    string,
+    { key: string; orders: number; sales: number; customers: number }
+  >();
+  const last = new Date(`${to}T00:00:00`);
+  for (let day = new Date(`${from}T00:00:00`); day <= last; day.setDate(day.getDate() + 1)) {
+    const key = dayKey(granularity === 'WEEKLY' ? mondayOf(day) : day);
+    const bucket = buckets.get(key) ?? { key, orders: 0, sales: 0, customers: 0 };
+    bucket.orders += 8 + (day.getDate() % 7);
+    bucket.sales += 700 + day.getDate() * 23;
+    bucket.customers += 2 + (day.getDate() % 4);
+    buckets.set(key, bucket);
   }
-  return { currency: 'EUR', buckets };
+  return { currency: 'EUR', buckets: [...buckets.values()] };
 }
 
 export function mockShop(calls: Record<string, unknown>[]): Executor {
@@ -102,7 +111,13 @@ export function mockShop(calls: Record<string, unknown>[]): Executor {
     execute: async <T>(query: string, variables: Record<string, unknown> = {}): Promise<T> => {
       calls.push({ query: query.slice(0, 60), ...variables });
       if (query.includes('adminAnalyticsSeries')) {
-        return { adminAnalyticsSeries: series(String(variables.from), String(variables.to)) } as T;
+        return {
+          adminAnalyticsSeries: series(
+            String(variables.from),
+            String(variables.to),
+            String(variables.granularity),
+          ),
+        } as T;
       }
       const measure = String(variables.measure).toLowerCase() as RankMeasure;
       const limit = Number(variables.limit);

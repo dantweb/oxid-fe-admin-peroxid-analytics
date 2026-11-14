@@ -159,7 +159,12 @@ defineExpose({ exportAs });
       <p class="popular__headline" data-test="popular-headline">{{ headline }}</p>
       <PieChart v-if="state.chart === 'pie'" :slices="pieSlices" :name="headline" />
       <RankBars v-else :rows="barRows" :name="headline" />
-      <div class="table-scroll">
+      <div
+        class="table-scroll"
+        tabindex="0"
+        role="region"
+        :aria-label="t(`analytics.popular.${subject}.title`)"
+      >
         <table class="popular__list" data-test="popular-list">
           <caption class="popular__caption">
             {{

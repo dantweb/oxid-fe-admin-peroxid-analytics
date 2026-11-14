@@ -74,7 +74,7 @@ export const en = {
     demoNote: 'Demo data: generated in the browser, not the numbers of the shop.',
     bucket: 'Bucket',
   },
-  table: { show: 'Show as table', bucket: 'Bucket' },
+  table: { show: 'Show as table', bucket: 'Bucket', region: 'Data table' },
   tile: { title: 'Sales, last 30 days', open: 'Open analytics' },
 } as const;
 
@@ -158,6 +158,6 @@ export const de = {
     demoNote: 'Demodaten: im Browser erzeugt, nicht die Zahlen des Shops.',
     bucket: 'Abschnitt',
   },
-  table: { show: 'Als Tabelle zeigen', bucket: 'Abschnitt' },
+  table: { show: 'Als Tabelle zeigen', bucket: 'Abschnitt', region: 'Datentabelle' },
   tile: { title: 'Umsatz, letzte 30 Tage', open: 'Analytics öffnen' },
 } as const;

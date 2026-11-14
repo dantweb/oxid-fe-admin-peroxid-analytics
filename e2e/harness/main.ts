@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import AnalyticsView from '../../src/AnalyticsView.vue';
 import { rememberClient } from '../../src/liveSource';
 import { de, en } from '../../src/messages';
+import { UI_ACTIONS_KEY } from '../../src/uiActions';
 import { mockShop } from './shop';
 
 /**
@@ -13,6 +14,8 @@ import { mockShop } from './shop';
 declare global {
   interface Window {
     __shopCalls: Record<string, unknown>[];
+    /** the handlers the page registered for the admin's UI actions (the admin's `registerUiAction`) */
+    __uiActions: Map<string, (args: Record<string, unknown>) => void | Promise<void>>;
   }
 }
 
@@ -21,6 +24,7 @@ document.documentElement.dataset.theme = query.get('theme') === 'dark' ? 'dark' 
 const locale = query.get('lang') === 'de' ? 'de' : 'en';
 document.documentElement.lang = locale;
 window.__shopCalls = [];
+window.__uiActions = new Map();
 if (query.get('source') === 'live') {
   rememberClient(mockShop(window.__shopCalls));
 }
@@ -45,4 +49,10 @@ const i18n = createI18n({
 createApp({ render: () => h('main', [h(AnalyticsView)]) })
   .use(i18n)
   .use(router)
+  .provide(UI_ACTIONS_KEY, {
+    register: (id: string, handler: (args: Record<string, unknown>) => void | Promise<void>) => {
+      window.__uiActions.set(id, handler);
+      return () => window.__uiActions.delete(id);
+    },
+  })
   .mount('#app');
