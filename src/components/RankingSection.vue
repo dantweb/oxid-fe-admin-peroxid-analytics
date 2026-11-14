@@ -13,7 +13,6 @@ import { rankingTable } from '../export/table';
 import { dayKey } from '../series/buckets';
 import { formatShare, formatValue } from '../series/format';
 import {
-  NONE_KEY,
   rankingSlices,
   RANK_MEASURES,
   TOP_N_CHOICES,
@@ -41,17 +40,19 @@ const unitOf = (): 'currency' | 'count' =>
 const valueText = (value: number): string =>
   formatValue(value, unitOf(), locale.value, false, ranking.value.currency);
 
-const labelOf = (slice: RankSlice): string => {
+/** An item without an id is "No category" in a category ranking; a product without one was deleted: its own title. */
+const labelOf = (slice: RankSlice, at: number): string => {
   if (slice.kind === 'others') {
     return t('analytics.popular.others');
   }
-  return slice.key === NONE_KEY ? t('analytics.popular.noCategory') : slice.title;
+  const noCategory = props.subject === 'categories' && ranking.value.items[at]?.id === null;
+  return noCategory ? t('analytics.popular.noCategory') : slice.title;
 };
 
 const pieSlices = computed<PieSlice[]>(() =>
-  rankingSlices(ranking.value).map((slice) => ({
+  rankingSlices(ranking.value).map((slice, at) => ({
     key: slice.key,
-    label: labelOf(slice),
+    label: labelOf(slice, at),
     valueText: valueText(slice.value),
     share: slice.share,
     kind: slice.kind,
@@ -83,7 +84,7 @@ const hrefOf = (id: string | null): string | null => {
   return props.subject === 'products' ? `/catalogue/products/${id}` : `/catalogue/categories/${id}`;
 };
 const titleOf = (id: string | null, title: string): string =>
-  id === null ? t('analytics.popular.noCategory') : title;
+  id === null && props.subject === 'categories' ? t('analytics.popular.noCategory') : title;
 const field = (name: string): string => `analytics.${props.subject}.${name}`;
 
 const root = ref<HTMLElement | null>(null);

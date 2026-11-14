@@ -231,4 +231,34 @@ describe('RankingSection', () => {
     expect(new Set(fills).size).toBe(16);
     expect(swatches).toEqual(fills);
   });
+
+  it('a deleted product (no id) keeps its title, is not linked and does not collide with another one', async () => {
+    const gone = (rank: number, title: string) => ({
+      rank,
+      entityId: null,
+      number: `G-${rank}`,
+      title,
+      value: 10,
+      share: 25,
+    });
+    const client: Executor = {
+      execute: async <T>(): Promise<T> =>
+        ({
+          adminAnalyticsTopProducts: {
+            ...answer(),
+            items: [gone(1, 'Gone Hat'), gone(2, 'Gone Cap')],
+          },
+        }) as unknown as T,
+    };
+    const { wrapper } = await mountSection('products', client);
+
+    const rows = wrapper.findAll('[data-test="popular-row"]');
+    expect(rows.map((row) => row.text())).toEqual([
+      expect.stringContaining('Gone Hat'),
+      expect.stringContaining('Gone Cap'),
+    ]);
+    expect(wrapper.findAll('[data-test="popular-link"]')).toHaveLength(0);
+    expect(wrapper.text()).not.toContain('No category');
+    expect(wrapper.findAll('[data-test="pie-slice"]')).toHaveLength(3); // two items and Others
+  });
 });

@@ -107,7 +107,7 @@ export function buildRanking(
 
 /** One piece of a chart: a ranked item, or everything outside the list. */
 export interface RankSlice {
-  /** unique within the ranking; `none` is the no-category item, `others` the remainder */
+  /** unique within the ranking; `none-<rank>` is an item without an id, `others` the remainder */
   key: string;
   kind: 'item' | 'others';
   title: string;
@@ -121,7 +121,7 @@ export const NONE_KEY = 'none';
 /** The items and, when something is left over, one "others" slice: the whole, as the charts show it. */
 export function rankingSlices(ranking: Ranking): RankSlice[] {
   const slices: RankSlice[] = ranking.items.map((item) => ({
-    key: item.id ?? NONE_KEY,
+    key: item.id ?? `${NONE_KEY}-${item.rank}`,
     kind: 'item',
     title: item.title,
     value: item.value,

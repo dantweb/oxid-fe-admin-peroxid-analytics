@@ -119,6 +119,22 @@ describe('rankingTable', () => {
     ]);
   });
 
+  it('a product without an id (deleted after the sale) keeps its title; only a category without an id is "No category"', () => {
+    const gone = buildRanking(
+      [{ id: null, number: 'G-1', title: 'Gone Hat', value: 5 }],
+      5,
+      'sales',
+      'EUR',
+    );
+
+    expect(rankingTable({ ...labels, ranking: gone, withNumber: true }).rows).toEqual([
+      [1, 'Gone Hat', 'G-1', 5, 100],
+    ]);
+    expect(rankingTable({ ...labels, ranking: gone, withNumber: false }).rows).toEqual([
+      [1, 'No category', 5, 100],
+    ]);
+  });
+
   it('no others line when nothing is left over', () => {
     const all = buildRanking(
       [{ id: 'a', number: null, title: 'Alpha', value: 5 }],
