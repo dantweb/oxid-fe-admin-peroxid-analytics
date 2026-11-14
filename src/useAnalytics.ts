@@ -16,11 +16,24 @@ export const RANGES: readonly RangeDays[] = [7, 30, 90, 180];
 
 export interface AnalyticsFilters {
   rangeDays: RangeDays;
+  /** a custom period (`YYYY-MM-DD`, both set) instead of the last `rangeDays` days; empty for a preset period */
+  from: string;
+  to: string;
   granularity: Granularity;
   metric: CurveId;
   scale: ScaleKind;
   chart: ChartKind;
 }
+
+export const DEFAULT_FILTERS: AnalyticsFilters = {
+  rangeDays: 30,
+  from: '',
+  to: '',
+  granularity: 'daily',
+  metric: 'sales',
+  scale: 'linear',
+  chart: 'curved',
+};
 
 export interface Analytics {
   filters: AnalyticsFilters;
@@ -38,6 +51,11 @@ export interface Analytics {
   /** the popular context and the granularity, for the curve "Share of top N products" */
   shareContext: ShareContext;
 }
+
+const dayAt = (key: string): Date => {
+  const [y, m, d] = key.split('-').map(Number) as [number, number, number];
+  return new Date(y, m - 1, d);
+};
 
 let cached: AnalyticsData | null = null;
 
@@ -63,15 +81,13 @@ export function useAnalytics({
   data,
   client = liveClient(),
 }: UseAnalyticsOptions = {}): Analytics {
-  const filters = reactive<AnalyticsFilters>({
-    rangeDays: 30,
-    granularity: 'daily',
-    metric: 'sales',
-    scale: 'linear',
-    chart: 'curved',
-  });
+  const filters = reactive<AnalyticsFilters>({ ...DEFAULT_FILTERS });
   const demo = (): AnalyticsData => data ?? demoData(today);
-  const range = computed(() => lastDays(today, filters.rangeDays));
+  const range = computed(() =>
+    filters.from !== '' && filters.to !== ''
+      ? { from: dayAt(filters.from), to: dayAt(filters.to) }
+      : lastDays(today, filters.rangeDays),
+  );
   const query = computed(() => ({ ...range.value, granularity: filters.granularity }));
   const previousQuery = computed(() => ({
     ...previousRange(range.value),

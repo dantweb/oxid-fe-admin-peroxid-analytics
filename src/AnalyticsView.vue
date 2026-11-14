@@ -8,6 +8,7 @@ import StatTile from './components/StatTile.vue';
 import { formatBucket, formatValue } from './series/format';
 import { METRICS, metricById, type MetricId, type Unit } from './series/metrics';
 import { SHARE_CURVE, SHARE_UNIT, type CurveId } from './series/shareCurve';
+import { useRouteFilters } from './routeFilters';
 import { useAnalytics } from './useAnalytics';
 import { usePopular } from './usePopular';
 import { useTopShare } from './useTopShare';
@@ -20,6 +21,7 @@ import { useTopShare } from './useTopShare';
  */
 const { t, locale } = useI18n();
 const { filters, series, current, previous, source, popularContext, shareContext } = useAnalytics();
+useRouteFilters(filters);
 const products = usePopular('products', popularContext);
 const categories = usePopular('categories', popularContext);
 const share = useTopShare(shareContext, products.state);

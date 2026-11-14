@@ -1,14 +1,29 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CHART_KINDS } from '../series/curve';
 import { METRICS } from '../series/metrics';
 import { SHARE_CURVE } from '../series/shareCurve';
-import { RANGES, type AnalyticsFilters } from '../useAnalytics';
+import { RANGES, type AnalyticsFilters, type RangeDays } from '../useAnalytics';
 
 /** One row above the charts, period first; every chart and tile below follows the same slice. */
 const filters = defineModel<AnalyticsFilters>({ required: true });
 defineProps<{ topN: number }>();
 const { t } = useI18n();
+
+/** `custom` while the period is a from-to range (from a link or the assistant), else the number of days. */
+const CUSTOM = 'custom';
+const periodChoice = computed(() =>
+  filters.value.from === '' ? String(filters.value.rangeDays) : CUSTOM,
+);
+function choosePeriod(value: string): void {
+  if (value === CUSTOM) {
+    return;
+  }
+  filters.value.rangeDays = Number(value) as RangeDays;
+  filters.value.from = '';
+  filters.value.to = '';
+}
 </script>
 
 <template>
@@ -16,12 +31,16 @@ const { t } = useI18n();
     <label>
       {{ t('analytics.filters.range') }}
       <select
-        v-model.number="filters.rangeDays"
+        :value="periodChoice"
+        @change="choosePeriod(($event.target as HTMLSelectElement).value)"
         data-field="analytics.filter.range"
         data-test="filter-range"
       >
         <option v-for="days in RANGES" :key="days" :value="days">
           {{ t(`analytics.range.d${days}`) }}
+        </option>
+        <option v-if="periodChoice === CUSTOM" :value="CUSTOM">
+          {{ filters.from }} – {{ filters.to }}
         </option>
       </select>
     </label>
