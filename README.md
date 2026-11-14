@@ -14,6 +14,8 @@ data is read. The PEROXID project admin ([`peroxid-admin`](https://github.com/da
 | Demo data                  | `src/ecw/demoData.ts` — the port of ecwatch-core's `demoda_data_generator.php` (anchored daily order counts, drifting basket value) plus customers; seeded |
 | Series                     | `src/series/` — buckets (daily, ISO weeks), metrics, totals, linear/log scales, the smooth curve, formatting                                               |
 
+**Documentation (ASD-STE100):** start at [`docs/README.md`](docs/README.md). It has the user guide and the developer guide.
+
 ## Filters
 
 | Filter      | Values                                                                                                           |
