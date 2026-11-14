@@ -7,24 +7,35 @@ import { unzipStored } from '../tests/unit/export/unzip';
 /**
  * The export of the analytics page (Sprint 38), against the harness page and a stand-in shop: every place with its
  * formats, the files themselves (CSV text, XLSX opened by unzip, number cells), the keyboard, the admin's UI action
- * handlers, and axe with a menu open in the light and the dark theme at 1280 and 360 px. A PDF export needs the `jspdf`
- * dependency and is not part of this suite yet. With `E2E_SCREENSHOTS=<dir>` it writes the screenshots.
+ * handlers, and axe with a menu open in the light and the dark theme at 1280 and 360 px. The PDFs (chart and ranking sections)
+ * are checked for the header `%PDF-`, an embedded image and, for 180 days of daily rows, more than one page. With `E2E_SCREENSHOTS=<dir>` it writes the screenshots.
  */
 const PLACES = [
   {
     id: 'chart',
+    formats: ['csv', 'xlsx', 'pdf'],
     file: /^analytics-sales-daily-\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\./,
     items: 'data table',
   },
   {
     id: 'table',
+    formats: ['csv', 'xlsx'],
     file: /^analytics-sales-daily-\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\./,
     items: 'data table',
   },
-  { id: 'top_products', file: /^analytics-top-products-sales-/, items: 'ranked list' },
-  { id: 'top_categories', file: /^analytics-top-categories-sales-/, items: 'ranked list' },
+  {
+    id: 'top_products',
+    formats: ['csv', 'xlsx', 'pdf'],
+    file: /^analytics-top-products-sales-/,
+    items: 'ranked list',
+  },
+  {
+    id: 'top_categories',
+    formats: ['csv', 'xlsx', 'pdf'],
+    file: /^analytics-top-categories-sales-/,
+    items: 'ranked list',
+  },
 ] as const;
-const FORMATS = ['csv', 'xlsx'] as const;
 
 const open = async (page: Page, params = 'source=live'): Promise<void> => {
   await page.goto(`/?${params}`);
@@ -46,7 +57,7 @@ async function exportFrom(page: Page, id: string, format: string): Promise<Downl
 
 test.describe('every place exports every format', () => {
   for (const place of PLACES) {
-    for (const format of FORMATS) {
+    for (const format of place.formats) {
       test(`${place.id} as ${format}`, async ({ page }) => {
         await open(page);
 
@@ -56,6 +67,11 @@ test.describe('every place exports every format', () => {
         expect(download.suggestedFilename()).toMatch(place.file);
         expect(download.suggestedFilename().endsWith(`.${format}`)).toBe(true);
         expect(bytes.length).toBeGreaterThan(0);
+        if (format === 'pdf') {
+          expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+          expect(bytes.toString('latin1')).toContain('/Subtype /Image');
+          return;
+        }
         if (format === 'csv') {
           const text = bytes.toString('utf-8');
           expect(text.startsWith('﻿')).toBe(true);
@@ -73,6 +89,43 @@ test.describe('every place exports every format', () => {
       });
     }
   }
+});
+
+const pagesOf = (pdf: Buffer): number =>
+  (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+
+test.describe('the PDF', () => {
+  test('a daily table of 180 days runs over several pages, each with the header and the footer', async ({
+    page,
+  }) => {
+    await open(page);
+
+    const waiting = page.waitForEvent('download');
+    await page.evaluate(() =>
+      window.__uiActions.get('analytics.export.chart')!({ format: 'pdf', period: '180' }),
+    );
+    const download = await waiting;
+    const bytes = await bytesOf(download);
+
+    expect(download.suggestedFilename()).toMatch(/^analytics-sales-daily-.*\.pdf$/);
+    expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(pagesOf(bytes)).toBeGreaterThan(1);
+    expect(bytes.length).toBeGreaterThan(20_000); // the chart image is in it
+  });
+
+  test('a ranking PDF works for the pie and for the bars', async ({ page }) => {
+    await open(page);
+
+    const pie = await exportFrom(page, 'top_products', 'pdf');
+    await page.getByTestId('popular-products').getByTestId('popular-chart').selectOption('bars');
+    const bars = await exportFrom(page, 'top_products', 'pdf');
+
+    for (const download of [pie, bars]) {
+      const bytes = await bytesOf(download);
+      expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+      expect(bytes.toString('latin1')).toContain('/Subtype /Image');
+    }
+  });
 });
 
 test.describe('the files hold what the page shows', () => {
@@ -151,6 +204,10 @@ test.describe('the menu', () => {
     const button = menu(page, 'chart').getByTestId('export-button');
 
     await button.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(
+      menu(page, 'chart').getByRole('menuitem', { name: 'PDF — chart and table' }),
+    ).toBeFocused();
     await page.keyboard.press('ArrowDown');
     await expect(
       menu(page, 'chart').getByRole('menuitem', { name: 'XLSX — data table' }),
@@ -259,6 +316,9 @@ for (const theme of ['light', 'dark'] as const) {
               (violation) => `${violation.id}: ${violation.nodes.map((n) => n.target).join(' | ')}`,
             ),
           ).toEqual([]);
+          if (id === 'chart' && viewport.name === '1280') {
+            await shot(page, `38-export-menu-pdf-${theme}-1280.png`, 'analytics-chart-card');
+          }
           if (id === 'chart') {
             await shot(
               page,

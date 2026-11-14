@@ -155,11 +155,12 @@ export async function barsToPng(
   colours: BarColours,
   scale = DEFAULT_SCALE,
 ): Promise<ChartPng> {
-  const holder = new DOMParser().parseFromString(barsSvg(rows, colours), 'image/svg+xml');
-  document.body.append(holder.documentElement);
+  const svg = new DOMParser().parseFromString(barsSvg(rows, colours), 'image/svg+xml')
+    .documentElement as unknown as SVGSVGElement;
+  document.body.append(svg); // moved into the page's document, so that it is measured and styled like any element
   try {
-    return await svgToPng(holder.documentElement as unknown as SVGSVGElement, scale);
+    return await svgToPng(svg, scale);
   } finally {
-    holder.documentElement.remove();
+    svg.remove();
   }
 }
