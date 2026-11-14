@@ -92,6 +92,25 @@ const EXPORT_FIELDS: UiFieldLike[] = [
   ),
 ];
 
+const VIEW_FIELDS: UiFieldLike[] = [
+  field(
+    'analytics.table.toggle',
+    { en: 'Show as table', de: 'Als Tabelle zeigen' },
+    {
+      en: 'Opens or closes the table of the curve under the chart. The assistant opens it with the action "Show the analytics page".',
+      de: 'Öffnet oder schließt die Tabelle der Kurve unter dem Diagramm. Der Assistent öffnet sie mit der Aktion „Analytics-Seite anzeigen“.',
+    },
+  ),
+  field(
+    'analytics.popular',
+    { en: 'Popular products and categories', de: 'Beliebte Produkte und Kategorien' },
+    {
+      en: 'The two ranking sections below the chart. The assistant sets their Top N, measure and chart with the action "Show popular products or categories".',
+      de: 'Die zwei Ranglistenabschnitte unter dem Diagramm. Der Assistent stellt Top N, Maß und Diagramm mit der Aktion „Beliebte Produkte oder Kategorien anzeigen“ ein.',
+    },
+  ),
+];
+
 export const analyticsUiFields: UiFieldLike[] = [
   field(
     'analytics.filter.range',
@@ -135,5 +154,6 @@ export const analyticsUiFields: UiFieldLike[] = [
   ),
   ...popularFields('products'),
   ...popularFields('categories'),
+  ...VIEW_FIELDS,
   ...EXPORT_FIELDS,
 ];

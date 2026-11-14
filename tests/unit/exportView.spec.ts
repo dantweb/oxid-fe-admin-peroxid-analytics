@@ -313,7 +313,7 @@ describe('the PDF export', () => {
 });
 
 describe('the UI actions of the page', () => {
-  it('registers the four handlers when the page opens and unregisters them when it closes', () => {
+  it('registers the six handlers when the page opens and unregisters them when it closes', () => {
     const { wrapper, handlers, unregistered } = mountExporting();
 
     expect([...handlers.keys()].sort()).toEqual([
@@ -321,6 +321,8 @@ describe('the UI actions of the page', () => {
       'analytics.export.table',
       'analytics.export.top_categories',
       'analytics.export.top_products',
+      'analytics.popular.show',
+      'analytics.show',
     ]);
     wrapper.unmount();
     expect(unregistered.sort()).toEqual([...handlers.keys()].sort());
@@ -381,14 +383,17 @@ describe('the UI actions of the page', () => {
   });
 
   it('declares the four actions with the contract: field, right and typed params', () => {
-    expect(analyticsUiActions.map((action) => action.id)).toEqual([
+    const exports = analyticsUiActions.filter((action) =>
+      action.id.startsWith('analytics.export.'),
+    );
+    expect(exports.map((action) => action.id)).toEqual([
       'analytics.export.chart',
       'analytics.export.table',
       'analytics.export.top_products',
       'analytics.export.top_categories',
     ]);
     const fieldIds = analyticsUiFields.map((field) => field.id);
-    for (const action of analyticsUiActions) {
+    for (const action of exports) {
       expect(action.route).toBe('/analytics');
       expect(action.right).toBe('ADMIN_ANALYTICS_VIEW');
       expect(fieldIds).toContain(action.field);
@@ -402,7 +407,7 @@ describe('the UI actions of the page', () => {
         required: true,
       });
     }
-    const top = analyticsUiActions[2]!;
+    const top = exports[2]!;
     expect(top.params.find((param) => param.name === 'limit')).toEqual({
       name: 'limit',
       type: 'int',
@@ -412,7 +417,7 @@ describe('the UI actions of the page', () => {
       type: 'enum',
       values: ['sales', 'units', 'orders'],
     });
-    expect(analyticsUiActions[0]!.params.map((param) => param.name)).toEqual([
+    expect(exports[0]!.params.map((param) => param.name)).toEqual([
       'format',
       'period',
       'from',
@@ -421,10 +426,9 @@ describe('the UI actions of the page', () => {
       'curve',
       'scale',
       'chart',
+      'table',
     ]);
-    for (const param of analyticsUiActions[0]!.params.filter(
-      (p) => p.name === 'from' || p.name === 'to',
-    )) {
+    for (const param of exports[0]!.params.filter((p) => p.name === 'from' || p.name === 'to')) {
       expect(param.type).toBe('date');
     }
   });

@@ -16,10 +16,11 @@ import { formatBucket } from './series/format';
 import { RANK_MEASURES, TOP_N_CHOICES } from './series/ranking';
 import { METRICS, metricById, type MetricId, type Unit } from './series/metrics';
 import { SHARE_CURVE, SHARE_UNIT, type CurveId } from './series/shareCurve';
-import { applyFilters, filtersFromQuery, useRouteFilters } from './routeFilters';
+import { applyFilters, filtersFromQuery } from './routeFilters';
+import { useRouteState } from './routeState';
 import { UI_ACTIONS_KEY } from './uiActions';
 import { useAnalytics } from './useAnalytics';
-import { usePopular } from './usePopular';
+import { POPULAR_CHARTS, usePopular, type Popular } from './usePopular';
 import { useTopShare } from './useTopShare';
 
 /**
@@ -40,9 +41,10 @@ const {
   shareContext,
   settled,
 } = useAnalytics();
-useRouteFilters(filters);
 const products = usePopular('products', popularContext);
 const categories = usePopular('categories', popularContext);
+const tableOpen = ref(false);
+useRouteState(filters, tableOpen, products.state, categories.state);
 const share = useTopShare(shareContext, products.state);
 
 const TILES: readonly MetricId[] = [
@@ -200,8 +202,30 @@ async function settle(): Promise<void> {
   await nextTick();
 }
 
-async function runSeriesAction(args: Record<string, unknown>): Promise<void> {
+/** The page-level args (the five filters and the table) set the page; what an action does not name stays. */
+function applyPage(args: Record<string, unknown>): void {
   applyFilters(filters, filtersFromQuery(asQuery(args)));
+  if (args.table === 'open' || args.table === 'closed') {
+    tableOpen.value = args.table === 'open';
+  }
+}
+
+/** The args of a ranking section (`limit`, `measure`, `chart`); what an action does not name stays. */
+function applySection(popular: Popular, args: Record<string, unknown>): void {
+  popular.state.topN =
+    TOP_N_CHOICES.find((n) => String(n) === String(args.limit)) ?? popular.state.topN;
+  popular.state.measure = RANK_MEASURES.find((m) => m === args.measure) ?? popular.state.measure;
+  popular.state.chart = POPULAR_CHARTS.find((c) => c === args.chart) ?? popular.state.chart;
+}
+
+/** The view action `analytics.show`: the page is set, nothing is exported. */
+async function runShowAction(args: Record<string, unknown>): Promise<void> {
+  applyPage(args);
+  await settle();
+}
+
+async function runSeriesAction(args: Record<string, unknown>): Promise<void> {
+  applyPage(args);
   await settle();
   await exportSeries(args.format as ExportFormat);
 }
@@ -214,20 +238,36 @@ async function runTableAction(args: Record<string, unknown>): Promise<void> {
   await runSeriesAction(args);
 }
 
-async function runRankingAction(
-  subject: 'products' | 'categories',
-  args: Record<string, unknown>,
-): Promise<void> {
-  const popular = subject === 'products' ? products : categories;
+type Subject = 'products' | 'categories';
+const isSubject = (value: unknown): value is Subject =>
+  value === 'products' || value === 'categories';
+
+/** The period of an action (`period`, or `from` and `to`) sets the page period; the section args set the section. */
+function applyRanking(subject: Subject, args: Record<string, unknown>): void {
   const period = filtersFromQuery(asQuery(args));
   applyFilters(filters, {
     ...(period.rangeDays === undefined ? {} : { rangeDays: period.rangeDays }),
     ...(period.from === undefined ? {} : { from: period.from, to: period.to }),
   });
-  popular.state.topN =
-    TOP_N_CHOICES.find((n) => String(n) === String(args.limit)) ?? popular.state.topN;
-  popular.state.measure =
-    RANK_MEASURES.find((measure) => measure === args.measure) ?? popular.state.measure;
+  applySection(subject === 'products' ? products : categories, args);
+}
+
+/** The view action `analytics.popular.show`: one section is set and scrolled into view. */
+async function runPopularShowAction(args: Record<string, unknown>): Promise<void> {
+  if (!isSubject(args.subject)) {
+    throw new Error('subject: products or categories');
+  }
+  applyRanking(args.subject, args);
+  await settle();
+  const section = args.subject === 'products' ? productsSection : categoriesSection;
+  (section.value?.$el as HTMLElement | undefined)?.scrollIntoView?.({
+    block: 'start',
+    behavior: 'smooth',
+  });
+}
+
+async function runRankingAction(subject: Subject, args: Record<string, unknown>): Promise<void> {
+  applyRanking(subject, args);
   await settle();
   const section = subject === 'products' ? productsSection : categoriesSection;
   await section.value?.exportAs(args.format as ExportFormat);
@@ -239,6 +279,8 @@ onMounted(() => {
     ...(uiActions === null
       ? []
       : [
+          uiActions.register('analytics.show', runShowAction),
+          uiActions.register('analytics.popular.show', runPopularShowAction),
           uiActions.register('analytics.export.chart', runSeriesAction),
           uiActions.register('analytics.export.table', runTableAction),
           uiActions.register('analytics.export.top_products', (args) =>
@@ -295,8 +337,13 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
         :readout="readout"
       />
       <div class="analytics__table-bar">
-        <details class="analytics__table" data-test="analytics-table">
-          <summary>{{ t('analytics.table.show') }}</summary>
+        <details
+          class="analytics__table"
+          data-test="analytics-table"
+          :open="tableOpen"
+          @toggle="tableOpen = ($event.target as HTMLDetailsElement).open"
+        >
+          <summary data-field="analytics.table.toggle">{{ t('analytics.table.show') }}</summary>
           <div
             class="table-scroll"
             tabindex="0"
@@ -334,7 +381,7 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
         </div>
       </div>
     </div>
-    <div class="analytics__popular" data-test="analytics-popular">
+    <div class="analytics__popular" data-field="analytics.popular" data-test="analytics-popular">
       <RankingSection ref="productsSection" subject="products" :popular="products" />
       <RankingSection ref="categoriesSection" subject="categories" :popular="categories" />
     </div>

@@ -20,6 +20,8 @@ const EXPECTED = [
   'analytics.categories.topN',
   'analytics.categories.measure',
   'analytics.categories.chart',
+  'analytics.table.toggle',
+  'analytics.popular',
   'analytics.export.chart',
   'analytics.export.table',
   'analytics.export.top_products',
@@ -55,9 +57,11 @@ describe('uiFields of the analytics plugin', () => {
     for (const id of exportMenus) {
       expect(wrapper.find(`[data-field="${id}"] button[aria-haspopup="menu"]`).exists()).toBe(true);
     }
-    expect(controls).toHaveLength(ids.length - exportMenus.length);
+    const notSelects = ['analytics.table.toggle', 'analytics.popular'];
+    expect(controls).toHaveLength(ids.length - exportMenus.length - notSelects.length);
     expect([...ids].sort()).toEqual([...EXPECTED].sort());
     expect(new Set(ids).size).toBe(ids.length);
     expect(controls.every((control) => control.attributes('data-field'))).toBe(true);
+    expect(ids).toEqual(expect.arrayContaining(notSelects));
   });
 });

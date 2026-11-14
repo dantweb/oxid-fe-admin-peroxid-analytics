@@ -49,6 +49,8 @@ export interface UiActionLike {
   right: string;
   /** a declared UI field: the control that is highlighted while the action runs */
   field: string;
+  /** a view change only (no download, no data change): the assistant's client runs it at once, without a click */
+  auto?: boolean;
   params: UiActionParamLike[];
 }
 
