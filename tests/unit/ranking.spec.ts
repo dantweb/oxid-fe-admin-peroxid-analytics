@@ -131,7 +131,7 @@ describe('rankingSlices', () => {
     expect(rankingSlices(ranking).map((slice) => slice.key)).toEqual(['a']);
   });
 
-  it('keys the no-category item so that it is unique', () => {
+  it('keys an item without an id by its rank, so that two of them (deleted products) stay unique', () => {
     const ranking = buildRanking(
       [entry(null, 'No category', 6), entry('x', 'X', 2)],
       5,
@@ -139,7 +139,7 @@ describe('rankingSlices', () => {
       'EUR',
     );
 
-    expect(rankingSlices(ranking).map((slice) => slice.key)).toEqual(['none', 'x']);
+    expect(rankingSlices(ranking).map((slice) => slice.key)).toEqual(['none-1', 'x']);
   });
 });
 

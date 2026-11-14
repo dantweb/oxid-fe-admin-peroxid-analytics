@@ -1,5 +1,5 @@
 import { formatValue } from '../series/format';
-import type { Ranking } from '../series/ranking';
+import type { RankItem, Ranking } from '../series/ranking';
 
 /**
  * The one table model of the page: "Show as table", the CSV and the XLSX all read it, so what a file holds is what the
@@ -88,6 +88,9 @@ export function rankingTable(input: RankingTableInput): ExportTable {
     valueColumn,
     { label: input.share, kind: 'percent' },
   ];
+  // an item without an id is "No category" in a category ranking; a product without one was deleted and keeps its title
+  const itemName = (item: RankItem): string =>
+    item.id === null && !input.withNumber ? input.noCategory : item.title;
   const line = (rank: Cell, name: string, number: string, value: number, share: number): Cell[] => [
     rank,
     name,
@@ -96,13 +99,7 @@ export function rankingTable(input: RankingTableInput): ExportTable {
     share,
   ];
   const rows = ranking.items.map((item) =>
-    line(
-      item.rank,
-      item.id === null ? input.noCategory : item.title,
-      item.number ?? '',
-      item.value,
-      item.share,
-    ),
+    line(item.rank, itemName(item), item.number ?? '', item.value, item.share),
   );
   if (ranking.others > 0) {
     rows.push(line('', input.others, '', ranking.others, ranking.othersShare));

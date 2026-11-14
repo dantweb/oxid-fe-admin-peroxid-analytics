@@ -253,6 +253,22 @@ describe('the PDF export', () => {
     await flushPromises();
     expect(vi.mocked(svgToPng).mock.calls.at(-1)![0].getAttribute('data-test')).toBe('pie-svg');
     expect(barsToPng).not.toHaveBeenCalled();
+    const pieLegend = pdfCall()[1].legend!;
+    expect(pieLegend).toHaveLength(6); // 5 items and Others
+    expect(pieLegend.map((line) => line.rank)).toEqual(['1', '2', '3', '4', '5', '']);
+    expect(pieLegend.at(-1)).toMatchObject({ title: 'Others' });
+    expect(pieLegend[0]!.valueText).toMatch(/^€/);
+    expect(pieLegend[0]!.shareText).toMatch(/^\d+\.\d %$/);
+    const fills = wrapper
+      .findAll('[data-test="popular-products"] [data-test="pie-slice"]')
+      .map((el) =>
+        /fill: rgb\((\d+), (\d+), (\d+)\)/
+          .exec(el.attributes('style') ?? '')!
+          .slice(1)
+          .map(Number),
+      );
+    expect(pieLegend.map((line) => line.colour)).toEqual(fills); // the legend shows the colours of the slices
+    expect(new Set(pieLegend.map((line) => line.colour.join())).size).toBe(6);
     expect(pdfCall()[0].columns.map((c) => c.label)).toEqual([
       'Rank',
       'Product',
@@ -272,6 +288,9 @@ describe('the PDF export', () => {
     expect(rows).toHaveLength(6);
     expect(rows.at(-1)).toMatchObject({ label: 'Others', kind: 'others' });
     expect(pdfCall()[1].image?.dataUrl).toBe('data:image/png;base64,BBBB');
+    const barLegend = pdfCall()[1].legend!;
+    expect(barLegend.map((line) => line.title)).toEqual(rows.map((row) => row.label));
+    expect(barLegend.map((line) => line.rank)).toEqual(['1', '2', '3', '4', '5', '']);
   });
 
   it('the pdf action exports the chart in the state its args name; the table action refuses a PDF', async () => {

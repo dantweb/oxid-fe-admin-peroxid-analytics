@@ -32,6 +32,37 @@ async function expectNoViolations(page: Page): Promise<void> {
   ).toEqual([]);
 }
 
+test.describe('the colours of the pie', () => {
+  for (const theme of THEMES) {
+    test(`every slice and Others has its own colour, the legend shows the same (${theme})`, async ({
+      page,
+    }, info) => {
+      await open(page, `theme=${theme}&source=live`);
+      const products = section(page, 'products');
+      await products.getByTestId('popular-topn').selectOption('15');
+
+      const fills = await products
+        .getByTestId('pie-slice')
+        .evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).fill));
+      const swatches = await products
+        .locator('.pie__swatch')
+        .evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).backgroundColor));
+
+      expect(fills).toHaveLength(16);
+      expect(new Set(fills).size).toBe(16);
+      expect(swatches).toEqual(fills);
+      const directory = process.env.E2E_SCREENSHOTS;
+      if (directory !== undefined) {
+        mkdirSync(directory, { recursive: true });
+        await products
+          .getByTestId('pie')
+          .screenshot({ path: resolve(directory, `39-pie-${theme}.png`) });
+      }
+      info.annotations.push({ type: 'colours', description: fills.join(' ') });
+    });
+  }
+});
+
 test.describe('the sections', () => {
   test('both sections show a headline, a pie with a legend and the sorted list of the top 5', async ({
     page,

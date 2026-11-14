@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { toPdf, type JsPdfLike, type PdfOptions } from '../../../src/export/pdf';
+import {
+  toPdf,
+  type JsPdfLike,
+  type PdfLegendEntry,
+  type PdfOptions,
+} from '../../../src/export/pdf';
 import type { ExportTable } from '../../../src/export/table';
 
 /** A jsPDF stand-in that records what is drawn: the layout is tested without a PDF reader. */
@@ -25,6 +30,19 @@ class FakePdf implements JsPdfLike {
   }
   setDrawColor(): this {
     return this;
+  }
+  fills: { colour: number[]; x: number; y: number; page: number }[] = [];
+  private fill: number[] = [];
+  setFillColor(...channels: number[]): this {
+    this.fill = channels;
+    return this;
+  }
+  rect(x: number, y: number): this {
+    this.fills.push({ colour: this.fill, x, y, page: this.current });
+    return this;
+  }
+  getTextWidth(text: string): number {
+    return text.length * 1.6;
   }
   line(): this {
     return this;
@@ -174,5 +192,83 @@ describe('toPdf', () => {
 
     expect(source).not.toMatch(/^import[^;]*from 'jspdf'/m);
     expect(source).toContain("import('jspdf')");
+  });
+
+  describe('the legend of a ranking', () => {
+    const entry = (at: number, title = `Product number ${at}`): PdfLegendEntry => ({
+      colour: [at * 10, 100, 200 - at],
+      rank: String(at + 1),
+      title,
+      valueText: `€${at * 100}.00`,
+      shareText: `${at}.5 %`,
+    });
+    const legend = (count: number): PdfLegendEntry[] =>
+      Array.from({ length: count }, (_, at) => entry(at));
+    const image = { dataUrl: 'data:image/png;base64,AAAA', width: 800, height: 800 };
+
+    it('has one line per slice: a swatch in the slice colour, rank and title, value and share', async () => {
+      await toPdf(table(3), options({ image, legend: legend(3) }));
+
+      expect(FakePdf.last.fills.map((fill) => fill.colour)).toEqual([
+        [0, 100, 200],
+        [10, 100, 199],
+        [20, 100, 198],
+      ]);
+      const all = textsOnPage(1);
+      expect(all).toEqual(
+        expect.arrayContaining([
+          '1. Product number 0',
+          '2. Product number 1',
+          '3. Product number 2',
+        ]),
+      );
+      expect(all).toEqual(expect.arrayContaining(['€100.00 · 1.5 %', '€200.00 · 2.5 %']));
+    });
+
+    it('stands next to the image, not on it, and each swatch sits on the line of its text', async () => {
+      await toPdf(table(3), options({ image, legend: legend(3) }));
+
+      const imageRight = 12 + FakePdf.last.images[0]!.width;
+      expect(Math.min(...FakePdf.last.fills.map((fill) => fill.x))).toBeGreaterThan(imageRight);
+      const line = FakePdf.last.texts.find((t) => t.text === '2. Product number 1')!;
+      expect(Math.abs(FakePdf.last.fills[1]!.y + 2.6 - line.y)).toBeLessThan(0.5);
+    });
+
+    it('shortens a long title with an ellipsis so that it stays in its column', async () => {
+      const long =
+        'Organic Cotton T-Shirt with a very long product title that has to wrap on a narrow screen';
+
+      await toPdf(table(3), options({ image, legend: [entry(0, long)] }));
+
+      const line = FakePdf.last.texts.find((t) => t.text.startsWith('1. Organic'))!;
+      expect(line.text.endsWith('…')).toBe(true);
+      expect(line.text.length).toBeLessThan(long.length);
+      const figureWidth = FakePdf.last.getTextWidth('€0.00 · 0.5 %');
+      expect(line.x + FakePdf.last.getTextWidth(line.text)).toBeLessThanOrEqual(
+        297 - 12 - figureWidth,
+      );
+    });
+
+    it('holds 20 items and Others on the first page, all inside the page', async () => {
+      const entries = [...legend(20), { ...entry(20, 'Others'), rank: '' }];
+
+      await toPdf(table(5), options({ image, legend: entries }));
+
+      expect(FakePdf.last.fills).toHaveLength(21);
+      expect(FakePdf.last.fills.every((fill) => fill.page === 1)).toBe(true);
+      expect(textsOnPage(1)).toContain('Others');
+      for (let at = 0; at < 20; at += 1) {
+        expect(textsOnPage(1)).toContain(`${at + 1}. Product number ${at}`);
+      }
+      expect(Math.max(...FakePdf.last.fills.map((fill) => fill.y))).toBeLessThan(194);
+    });
+
+    it('is full width without an image, and absent without entries', async () => {
+      await toPdf(table(3), options({ image: null, legend: legend(2) }));
+      expect(Math.min(...FakePdf.last.fills.map((fill) => fill.x))).toBe(12);
+
+      await toPdf(table(3), options({ image, legend: [] }));
+      expect(FakePdf.last.fills).toHaveLength(0);
+    });
   });
 });

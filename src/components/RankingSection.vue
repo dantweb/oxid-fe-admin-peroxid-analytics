@@ -5,12 +5,14 @@ import { RouterLink } from 'vue-router';
 import { barsToPng, svgToPng, type ChartPng } from '../export/chartImage';
 import { rankingFileName } from '../export/download';
 import { exportPdf } from '../export/exportPdf';
+import type { PdfLegendEntry } from '../export/pdf';
+import { parseColour, type Rgb } from '../series/palette';
+import { usePalette } from '../usePalette';
 import { exportTable, type ExportFormat } from '../export/exportTable';
 import { rankingTable } from '../export/table';
 import { dayKey } from '../series/buckets';
 import { formatShare, formatValue } from '../series/format';
 import {
-  NONE_KEY,
   rankingSlices,
   RANK_MEASURES,
   TOP_N_CHOICES,
@@ -38,23 +40,33 @@ const unitOf = (): 'currency' | 'count' =>
 const valueText = (value: number): string =>
   formatValue(value, unitOf(), locale.value, false, ranking.value.currency);
 
-const labelOf = (slice: RankSlice): string => {
+/** An item without an id is "No category" in a category ranking; a product without one was deleted: its own title. */
+const labelOf = (slice: RankSlice, at: number): string => {
   if (slice.kind === 'others') {
     return t('analytics.popular.others');
   }
-  return slice.key === NONE_KEY ? t('analytics.popular.noCategory') : slice.title;
+  const noCategory = props.subject === 'categories' && ranking.value.items[at]?.id === null;
+  return noCategory ? t('analytics.popular.noCategory') : slice.title;
 };
 
 const pieSlices = computed<PieSlice[]>(() =>
-  rankingSlices(ranking.value).map((slice) => ({
+  rankingSlices(ranking.value).map((slice, at) => ({
     key: slice.key,
-    label: labelOf(slice),
+    label: labelOf(slice, at),
     valueText: valueText(slice.value),
     share: slice.share,
     kind: slice.kind,
   })),
 );
 const barRows = computed<BarRow[]>(() => pieSlices.value);
+
+/** One distinct colour per item and a grey for "Others", from the theme tokens (src/series/palette.ts). */
+const palette = usePalette(() => ranking.value.items.length);
+const sliceColours = computed(() =>
+  pieSlices.value.map((slice, at) =>
+    slice.kind === 'others' ? palette.value.others : palette.value.slices[at]!,
+  ),
+);
 
 const headline = computed(() =>
   t(`analytics.popular.${props.subject}.headline`, {
@@ -72,7 +84,7 @@ const hrefOf = (id: string | null): string | null => {
   return props.subject === 'products' ? `/catalogue/products/${id}` : `/catalogue/categories/${id}`;
 };
 const titleOf = (id: string | null, title: string): string =>
-  id === null ? t('analytics.popular.noCategory') : title;
+  id === null && props.subject === 'categories' ? t('analytics.popular.noCategory') : title;
 const field = (name: string): string => `analytics.${props.subject}.${name}`;
 
 const root = ref<HTMLElement | null>(null);
@@ -122,6 +134,33 @@ const barColours = (): { fill: string; muted: string; text: string; track: strin
   };
 };
 
+/** The colour of each legend line: the slice's colour in the pie, the colour of the bar in the bars. */
+function legendColours(): Rgb[] {
+  if (props.popular.state.chart === 'pie') {
+    return pieSlices.value.map((slice, at) =>
+      slice.kind === 'others' ? palette.value.othersRgb : palette.value.slicesRgb[at]!,
+    );
+  }
+  const { fill, muted } = barColours();
+  const [item, others] = [
+    parseColour(fill) ?? palette.value.slicesRgb[0]!,
+    parseColour(muted) ?? palette.value.othersRgb,
+  ];
+  return pieSlices.value.map((slice) => (slice.kind === 'others' ? others : item));
+}
+
+/** The legend of the PDF: a line per slice, with the colour it has on screen. */
+function pdfLegend(): PdfLegendEntry[] {
+  const colours = legendColours();
+  return pieSlices.value.map((slice, at) => ({
+    colour: colours[at]!,
+    rank: slice.kind === 'others' ? '' : String(at + 1),
+    title: slice.label,
+    valueText: slice.valueText,
+    shareText: formatShare(slice.share, locale.value),
+  }));
+}
+
 /** The chart as the section shows it, as an image: the pie's SVG, or the bars drawn from the colours on screen. */
 async function chartImage(): Promise<ChartPng | null> {
   if (props.popular.state.chart === 'pie') {
@@ -158,6 +197,7 @@ async function exportAs(format: ExportFormat): Promise<void> {
         created: (date) => t('analytics.export.created', { date }),
         pageOf: (page, pages) => t('analytics.export.page', { page, pages }),
       },
+      pdfLegend(),
     );
     return;
   }
@@ -216,7 +256,12 @@ defineExpose({ exportAs });
     </p>
     <template v-else>
       <p class="popular__headline" data-test="popular-headline">{{ headline }}</p>
-      <PieChart v-if="state.chart === 'pie'" :slices="pieSlices" :name="headline" />
+      <PieChart
+        v-if="state.chart === 'pie'"
+        :slices="pieSlices"
+        :colours="sliceColours"
+        :name="headline"
+      />
       <RankBars v-else :rows="barRows" :name="headline" />
       <div
         class="table-scroll"

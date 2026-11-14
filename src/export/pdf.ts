@@ -19,6 +19,9 @@ export interface JsPdfLike {
   setFontSize(size: number): unknown;
   setTextColor(...channels: number[]): unknown;
   setDrawColor(...channels: number[]): unknown;
+  setFillColor(...channels: number[]): unknown;
+  rect(x: number, y: number, width: number, height: number, style?: string): unknown;
+  getTextWidth(text: string): number;
   line(x1: number, y1: number, x2: number, y2: number): unknown;
   text(
     text: string,
@@ -45,6 +48,16 @@ interface JsPdfModule {
   jsPDF: new (options: { orientation: 'landscape'; unit: 'mm'; format: 'a4' }) => JsPdfLike;
 }
 
+/** One line of the legend of a ranking: the slice's colour and what it stands for. */
+export interface PdfLegendEntry {
+  colour: [number, number, number];
+  /** "1", "2" … ; empty for "Others" */
+  rank: string;
+  title: string;
+  valueText: string;
+  shareText: string;
+}
+
 export interface PdfOptions {
   locale: string;
   demoNote: string;
@@ -52,6 +65,8 @@ export interface PdfOptions {
   created: string;
   pageOf: (page: number, pages: number) => string;
   image: PdfImage | null;
+  /** the legend of the chart (ranking PDFs): a line per slice, next to the image */
+  legend?: PdfLegendEntry[];
   /** how jspdf is loaded; the default is the dynamic import */
   load?: () => Promise<JsPdfModule>;
 }
@@ -90,12 +105,63 @@ function drawHeader(doc: JsPdfLike, table: ExportTable, options: PdfOptions): nu
   return y + 5;
 }
 
-function drawImage(doc: JsPdfLike, image: PdfImage, y: number): number {
-  const ratio = image.height / image.width;
-  const height = Math.min(IMAGE_MAX_HEIGHT, CONTENT_WIDTH * ratio);
-  const width = height / ratio;
-  doc.addImage(image.dataUrl, 'PNG', MARGIN, y, width, height);
-  return y + height + 5;
+const IMAGE_WITH_LEGEND_WIDTH = 120;
+const IMAGE_WITH_LEGEND_HEIGHT = 100;
+const LEGEND_GAP = 8;
+const LEGEND_MAX_LINE = 5.5;
+const SWATCH = 3;
+const ELLIPSIS = '…';
+
+/** The text, cut with an ellipsis until it fits the width. */
+function fitted(doc: JsPdfLike, text: string, width: number): string {
+  if (doc.getTextWidth(text) <= width) {
+    return text;
+  }
+  let cut = text;
+  while (cut.length > 1 && doc.getTextWidth(cut + ELLIPSIS) > width) {
+    cut = cut.slice(0, -1);
+  }
+  return cut.trimEnd() + ELLIPSIS;
+}
+
+/** One line per slice: a swatch in the slice's colour, "rank. title" and, at the right edge, "value · share". */
+function drawLegend(doc: JsPdfLike, legend: PdfLegendEntry[], x: number, top: number): number {
+  const width = PAGE_WIDTH - MARGIN - x;
+  const lineHeight = Math.min(LEGEND_MAX_LINE, IMAGE_WITH_LEGEND_HEIGHT / legend.length);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  const figures = legend.map((entry) => `${entry.valueText} · ${entry.shareText}`);
+  const figureWidth = Math.max(...figures.map((text) => doc.getTextWidth(text)));
+  legend.forEach((entry, at) => {
+    const y = top + at * lineHeight;
+    doc.setFillColor(...entry.colour);
+    doc.rect(x, y - SWATCH + 0.4, SWATCH, SWATCH, 'F');
+    doc.setTextColor(0);
+    const title = entry.rank === '' ? entry.title : `${entry.rank}. ${entry.title}`;
+    doc.text(fitted(doc, title, width - SWATCH - 3 - figureWidth - 3), x + SWATCH + 2, y);
+    doc.text(figures[at]!, x + width, y, { align: 'right' });
+  });
+  return legend.length * lineHeight;
+}
+
+/** The chart image and, next to it, the legend; the table starts below whichever is taller. */
+function drawChart(doc: JsPdfLike, options: PdfOptions, y: number): number {
+  const legend = options.legend ?? [];
+  const { image } = options;
+  let imageHeight = 0;
+  let imageRight = MARGIN;
+  if (image !== null) {
+    const ratio = image.height / image.width;
+    const maxWidth = legend.length > 0 ? IMAGE_WITH_LEGEND_WIDTH : CONTENT_WIDTH;
+    const maxHeight = legend.length > 0 ? IMAGE_WITH_LEGEND_HEIGHT : IMAGE_MAX_HEIGHT;
+    const height = Math.min(maxHeight, maxWidth * ratio);
+    const width = height / ratio;
+    doc.addImage(image.dataUrl, 'PNG', MARGIN, y, width, height);
+    imageHeight = height;
+    imageRight = MARGIN + width + LEGEND_GAP;
+  }
+  const legendHeight = legend.length > 0 ? drawLegend(doc, legend, imageRight, y + 4) : 0;
+  return y + Math.max(imageHeight, legendHeight) + 5;
 }
 
 function drawRow(
@@ -168,9 +234,7 @@ export async function toPdf(table: ExportTable, options: PdfOptions): Promise<Ui
   const { jsPDF } = await (options.load ?? loadJsPdf)();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   let y = drawHeader(doc, table, options);
-  if (options.image !== null) {
-    y = drawImage(doc, options.image, y);
-  }
+  y = drawChart(doc, options, y);
   drawTable(doc, table, options.locale, y);
   drawFooters(doc, options);
   return new Uint8Array(doc.output('arraybuffer'));
