@@ -3,18 +3,23 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import FilterBar from './components/FilterBar.vue';
 import LineChart, { type ReadoutRow } from './components/LineChart.vue';
+import RankingSection from './components/RankingSection.vue';
 import StatTile from './components/StatTile.vue';
 import { formatBucket, formatValue } from './series/format';
 import { METRICS, metricById, type MetricId } from './series/metrics';
 import { useAnalytics } from './useAnalytics';
+import { usePopular } from './usePopular';
 
 /**
  * The analytics page: one filter row (period, granularity, curve, scale, chart type), five stat tiles for the period,
  * the curve of the chosen metric with a crosshair readout of every metric, and the same numbers as a table.
- * Everything is computed in the browser from the demo data set (src/ecw/demoData.ts).
+ * Everything is computed in the browser from the demo data set (src/ecw/demoData.ts), unless the shop's module answers.
+ * Below: the popular products and categories of the same period (src/components/RankingSection.vue).
  */
 const { t, locale } = useI18n();
-const { filters, series, current, previous, source } = useAnalytics();
+const { filters, series, current, previous, source, popularContext } = useAnalytics();
+const products = usePopular('products', popularContext);
+const categories = usePopular('categories', popularContext);
 
 const TILES: readonly MetricId[] = [
   'orders',
@@ -102,6 +107,10 @@ const chartTitle = computed(() =>
         </div>
       </details>
     </div>
+    <div class="analytics__popular" data-test="analytics-popular">
+      <RankingSection subject="products" :popular="products" />
+      <RankingSection subject="categories" :popular="categories" />
+    </div>
   </section>
 </template>
 
@@ -123,6 +132,12 @@ const chartTitle = computed(() =>
   box-shadow:
     0 1px 2px rgb(0 0 0 / 6%),
     0 1px 3px rgb(0 0 0 / 8%);
+}
+.analytics__popular {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+  gap: 1rem;
+  align-items: start;
 }
 .analytics__card > h2 {
   margin-top: 0;

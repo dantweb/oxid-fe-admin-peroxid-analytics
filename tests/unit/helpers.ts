@@ -20,6 +20,8 @@ export function mountInAdmin<T extends Component>(
     routes: [
       { path: '/', component: { template: '<div />' } },
       { path: '/analytics', component: { template: '<div />' } },
+      { path: '/catalogue/products/:id', component: { template: '<div />' } },
+      { path: '/catalogue/categories/:id', component: { template: '<div />' } },
     ],
   });
   return mount(component, { ...options, global: { plugins: [i18n, router], ...options.global } });

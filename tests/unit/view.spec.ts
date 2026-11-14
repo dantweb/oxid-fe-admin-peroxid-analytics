@@ -27,6 +27,26 @@ describe('AnalyticsView', () => {
     expect(wrapper.findAll('[data-test="x-tick"]').length).toBeGreaterThanOrEqual(5);
   });
 
+  it('shows the popular products and categories of the same period below the curve', async () => {
+    const wrapper = mountInAdmin(AnalyticsView);
+    await nextTick();
+
+    expect(wrapper.get('[data-test="popular-products"] h2').text()).toBe('Popular products');
+    expect(wrapper.get('[data-test="popular-categories"] h2').text()).toBe('Popular categories');
+    expect(
+      wrapper.findAll('[data-test="popular-products"] [data-test="popular-row"]'),
+    ).toHaveLength(5);
+    const before = wrapper
+      .get('[data-test="popular-products"] [data-test="popular-headline"]')
+      .text();
+
+    await wrapper.get('[data-test="filter-range"]').setValue('7');
+
+    expect(
+      wrapper.get('[data-test="popular-products"] [data-test="popular-headline"]').text(),
+    ).not.toBe(before);
+  });
+
   it('the filters scope everything: 7 days weekly gives one or two buckets, the curve and the table follow', async () => {
     const wrapper = mountInAdmin(AnalyticsView);
     await wrapper.get('[data-test="filter-range"]').setValue('7');
