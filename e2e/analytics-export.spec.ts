@@ -128,6 +128,46 @@ test.describe('the PDF', () => {
   });
 });
 
+test.describe('the legend of a ranking PDF', () => {
+  const SHORT_TITLES = [
+    'Kuyichi Jeans Mick',
+    'Wakeboard Bar Set',
+    'Organic Cotton T-Shi', // the long title is shortened with an ellipsis
+    'Canvas Sneaker Low',
+    'Everyday Backpack 20',
+    'Slim Fit Jeans Dark',
+    'Striped Longsleeve',
+    'Trail Sneaker',
+    'Steel Watch Classic',
+    'Graphic T-Shirt Wave',
+    'Leather Belt Brown',
+    'Roll-Top Bag',
+    'Straight Jeans Light',
+    'Minimal Watch Black',
+    'High-Top Sneaker',
+  ];
+
+  for (const chart of ['pie', 'bars']) {
+    test(`names every slice of the top 15 and Others, with its rank (${chart})`, async ({
+      page,
+    }) => {
+      await open(page);
+      const products = page.getByTestId('popular-products');
+      await products.getByTestId('popular-topn').selectOption('15');
+      await products.getByTestId('popular-chart').selectOption(chart);
+
+      const bytes = await bytesOf(await exportFrom(page, 'top_products', 'pdf'));
+      const text = bytes.toString('latin1');
+
+      SHORT_TITLES.forEach((title, at) => {
+        expect(text, `legend line ${at + 1}`).toContain(`(${at + 1}. ${title}`);
+      });
+      expect(text).toContain('(Others)');
+      expect(text).toMatch(/ \xb7 \d+\.\d %\)/); // the value and the share of a legend line
+    });
+  }
+});
+
 test.describe('the files hold what the page shows', () => {
   test('the chart CSV has one row per day of the table and the same numbers', async ({ page }) => {
     await open(page);
