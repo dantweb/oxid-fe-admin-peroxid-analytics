@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { barsSvg, inlineComputedStyles, pngSize } from '../../../src/export/chartImage';
 
 const parse = (markup: string): SVGSVGElement =>
@@ -73,8 +73,8 @@ describe('barsSvg', () => {
   ];
 
   it('draws one labelled bar per row, the longest filling the track, with literal colours only', () => {
-    const markup = barsSvg(rows, colours);
-    const svg = parse(markup);
+    const svg = barsSvg(rows, colours);
+    const markup = new XMLSerializer().serializeToString(svg);
 
     expect(svg.querySelectorAll('rect[data-bar]')).toHaveLength(2);
     expect(markup).not.toContain('var(--');
@@ -87,9 +87,20 @@ describe('barsSvg', () => {
     expect(svg.querySelectorAll('rect[data-bar]')[1]!.getAttribute('fill')).toBe('rgb(9, 9, 9)');
   });
 
-  it('escapes the labels', () => {
-    const svg = parse(barsSvg([{ ...rows[0]!, label: 'A & <B>' }], colours));
+  it('keeps the labels as text', () => {
+    const svg = barsSvg([{ ...rows[0]!, label: 'A & <B>' }], colours);
 
     expect(svg.querySelector('text')!.textContent).toBe('A & <B>');
+    expect(svg.querySelectorAll('B')).toHaveLength(0);
+  });
+
+  it('is built with DOM calls, not parsed from a string (the admin requires Trusted Types)', () => {
+    const parse = vi.spyOn(DOMParser.prototype, 'parseFromString');
+
+    const svg = barsSvg(rows, colours);
+
+    expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+    expect(parse).not.toHaveBeenCalled();
+    parse.mockRestore();
   });
 });

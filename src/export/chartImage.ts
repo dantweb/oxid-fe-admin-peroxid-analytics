@@ -62,13 +62,6 @@ export function pngSize(svg: Element, scale: number): { width: number; height: n
   return { width: Math.round(width! * scale), height: Math.round(height! * scale) };
 }
 
-const escapeXml = (text: string): string =>
-  text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-
 export interface BarColours {
   fill: string;
   muted: string;
@@ -87,23 +80,67 @@ const BAR_WIDTH = 900;
 const BAR_ROW = 34;
 const BAR_PAD = 12;
 
-/** The bars of a ranking as an SVG: a label above each bar, the value and share at its right end. Literal colours only. */
-export function barsSvg(rows: readonly BarImageRow[], colours: BarColours): string {
+/** The bars of a ranking as an SVG: a label above each bar, the value and share at its right end. Literal colours only.
+ * Built with DOM calls: peroxid-admin requires Trusted Types, so no markup string is parsed. */
+export function barsSvg(rows: readonly BarImageRow[], colours: BarColours): SVGSVGElement {
   const widest = Math.max(...rows.map((row) => row.share), 0);
   const trackWidth = BAR_WIDTH - 2 * BAR_PAD;
   const height = BAR_PAD * 2 + rows.length * BAR_ROW;
-  const parts = rows.map((row, at) => {
+  const svg = svgElement('svg', {
+    viewBox: `0 0 ${BAR_WIDTH} ${height}`,
+    width: BAR_WIDTH,
+    height,
+  });
+  rows.forEach((row, at) => {
     const top = BAR_PAD + at * BAR_ROW;
     const width = widest > 0 ? (row.share / widest) * trackWidth : 0;
     const fill = row.kind === 'others' ? colours.muted : colours.fill;
-    return (
-      `<text x="${BAR_PAD}" y="${top + 11}" font-size="12" font-family="sans-serif" fill="${colours.text}">${escapeXml(row.label)}</text>` +
-      `<text x="${BAR_WIDTH - BAR_PAD}" y="${top + 11}" font-size="12" font-weight="bold" font-family="sans-serif" text-anchor="end" fill="${colours.text}">${escapeXml(row.valueText)}</text>` +
-      `<rect x="${BAR_PAD}" y="${top + 16}" width="${trackWidth}" height="10" rx="3" fill="${colours.track}"/>` +
-      `<rect data-bar="" x="${BAR_PAD}" y="${top + 16}" width="${width}" height="10" rx="3" fill="${fill}"/>`
+    const text = { 'font-size': 12, 'font-family': 'sans-serif', fill: colours.text, y: top + 11 };
+    svg.append(
+      svgText(row.label, { ...text, x: BAR_PAD }),
+      svgText(row.valueText, {
+        ...text,
+        x: BAR_WIDTH - BAR_PAD,
+        'font-weight': 'bold',
+        'text-anchor': 'end',
+      }),
+      svgElement('rect', {
+        x: BAR_PAD,
+        y: top + 16,
+        width: trackWidth,
+        height: 10,
+        rx: 3,
+        fill: colours.track,
+      }),
+      svgElement('rect', {
+        'data-bar': '',
+        x: BAR_PAD,
+        y: top + 16,
+        width,
+        height: 10,
+        rx: 3,
+        fill,
+      }),
     );
   });
-  return `<svg xmlns="${SVG_NAMESPACE}" viewBox="0 0 ${BAR_WIDTH} ${height}" width="${BAR_WIDTH}" height="${height}">${parts.join('')}</svg>`;
+  return svg;
+}
+
+function svgElement<K extends keyof SVGElementTagNameMap>(
+  name: K,
+  attributes: Record<string, string | number>,
+): SVGElementTagNameMap[K] {
+  const element = document.createElementNS(SVG_NAMESPACE, name);
+  for (const [key, value] of Object.entries(attributes)) {
+    element.setAttribute(key, String(value));
+  }
+  return element;
+}
+
+function svgText(content: string, attributes: Record<string, string | number>): SVGTextElement {
+  const text = svgElement('text', attributes);
+  text.textContent = content;
+  return text;
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
@@ -155,9 +192,8 @@ export async function barsToPng(
   colours: BarColours,
   scale = DEFAULT_SCALE,
 ): Promise<ChartPng> {
-  const svg = new DOMParser().parseFromString(barsSvg(rows, colours), 'image/svg+xml')
-    .documentElement as unknown as SVGSVGElement;
-  document.body.append(svg); // moved into the page's document, so that it is measured and styled like any element
+  const svg = barsSvg(rows, colours);
+  document.body.append(svg); // in the page's document, so that it is measured and styled like any element
   try {
     return await svgToPng(svg, scale);
   } finally {
