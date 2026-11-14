@@ -116,7 +116,7 @@ export interface RankSlice {
 }
 
 const OTHERS_KEY = 'others';
-export const NONE_KEY = 'none';
+const NONE_KEY = 'none';
 
 /** The items and, when something is left over, one "others" slice: the whole, as the charts show it. */
 export function rankingSlices(ranking: Ranking): RankSlice[] {
