@@ -54,7 +54,9 @@ const direction = computed(() =>
   letter-spacing: 0.03em;
 }
 .stat__value {
-  font-size: 1.875rem;
+  /* follows the width of the page grid: the value fits a column of the five-column step */
+  font-size: clamp(1.25rem, 2.2cqi, 1.875rem);
+  overflow-wrap: anywhere;
   font-weight: 600;
   line-height: 1.1;
 }

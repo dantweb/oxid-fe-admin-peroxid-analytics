@@ -302,7 +302,7 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
       {{ t(source === 'live' ? 'analytics.liveNote' : 'analytics.demoNote') }}
     </p>
     <FilterBar v-model="filters" :top-n="products.state.topN" />
-    <div class="analytics__stats fold-grid" data-test="analytics-stats">
+    <div class="analytics__stats analytics-row fold-grid" data-test="analytics-stats">
       <StatTile
         v-for="id in TILES"
         :id="id"
@@ -394,10 +394,38 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
   font-size: 0.875rem;
   color: var(--oxfe-color-text-muted, #666666);
 }
-.analytics__stats {
+.analytics {
+  /* one grid for the page: its width is the width of the content, which changes when the admin's sidebar is open or
+     folded, so the steps below follow this container and not the viewport */
+  container: analytics / inline-size;
+  --analytics-gap: 1rem;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--analytics-gap);
+}
+/* the filter row and the stat row: the same columns, so filter n and tile n have the same edges at every width */
+.analytics-row {
+  display: grid;
+  grid-template-columns: repeat(var(--analytics-columns, 1), minmax(0, 1fr));
+  gap: var(--analytics-gap);
+}
+.analytics-row > * {
+  min-width: 0;
+}
+@container analytics (min-width: 26rem) {
+  .analytics-row {
+    --analytics-columns: 2;
+  }
+}
+@container analytics (min-width: 40rem) {
+  .analytics-row {
+    --analytics-columns: 3;
+  }
+}
+@container analytics (min-width: 64rem) {
+  .analytics-row {
+    --analytics-columns: 5;
+  }
 }
 .analytics__card {
   min-width: 0; /* a grid item may shrink below its widest table: the table scrolls inside its box */
@@ -410,9 +438,14 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
 }
 .analytics__popular {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--analytics-gap);
   align-items: start;
+}
+@container analytics (min-width: 48rem) {
+  .analytics__popular {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .analytics__card > h2 {
   margin-top: 0;

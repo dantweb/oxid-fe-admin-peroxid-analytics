@@ -23,6 +23,10 @@ const query = new URLSearchParams(window.location.search);
 document.documentElement.dataset.theme = query.get('theme') === 'dark' ? 'dark' : 'light';
 const locale = query.get('lang') === 'de' ? 'de' : 'en';
 document.documentElement.lang = locale;
+// `?sidebar=open|folded` takes the width that the admin's sidebar takes from the content (harness.css)
+if (query.get('sidebar') === 'open' || query.get('sidebar') === 'folded') {
+  document.documentElement.dataset.sidebar = query.get('sidebar')!;
+}
 window.__shopCalls = [];
 window.__uiActions = new Map();
 if (query.get('source') === 'live') {
