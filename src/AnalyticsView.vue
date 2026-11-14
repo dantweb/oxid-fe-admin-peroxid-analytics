@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import ExportMenu from './components/ExportMenu.vue';
 import FilterBar from './components/FilterBar.vue';
 import LineChart, { type ReadoutRow } from './components/LineChart.vue';
 import RankingSection from './components/RankingSection.vue';
 import StatTile from './components/StatTile.vue';
-import { formatBucket, formatValue } from './series/format';
+import { seriesFileName } from './export/download';
+import { exportTable, type ExportFormat } from './export/exportTable';
+import { formatCell, seriesTable, type ColumnKind } from './export/table';
+import { dayKey } from './series/buckets';
+import { formatBucket } from './series/format';
+import { RANK_MEASURES, TOP_N_CHOICES } from './series/ranking';
 import { METRICS, metricById, type MetricId, type Unit } from './series/metrics';
 import { SHARE_CURVE, SHARE_UNIT, type CurveId } from './series/shareCurve';
-import { useRouteFilters } from './routeFilters';
+import { applyFilters, filtersFromQuery, useRouteFilters } from './routeFilters';
+import { UI_ACTIONS_KEY } from './uiActions';
 import { useAnalytics } from './useAnalytics';
 import { usePopular } from './usePopular';
 import { useTopShare } from './useTopShare';
@@ -20,7 +27,17 @@ import { useTopShare } from './useTopShare';
  * Below: the popular products and categories of the same period (src/components/RankingSection.vue).
  */
 const { t, locale } = useI18n();
-const { filters, series, current, previous, source, popularContext, shareContext } = useAnalytics();
+const {
+  filters,
+  series,
+  current,
+  previous,
+  source,
+  currency,
+  popularContext,
+  shareContext,
+  settled,
+} = useAnalytics();
 useRouteFilters(filters);
 const products = usePopular('products', popularContext);
 const categories = usePopular('categories', popularContext);
@@ -75,6 +92,113 @@ const chartTitle = computed(() =>
     granularity: t(`analytics.granularity.${filters.granularity}`).toLowerCase(),
   }),
 );
+
+const KIND: Record<Unit, Exclude<ColumnKind, 'text'>> = {
+  count: 'number',
+  currency: 'money',
+  ratio: 'ratio',
+  percent: 'percent',
+};
+
+/** The table model: "Show as table" draws it and the exports write it, so a file holds what the admin sees. */
+const table = computed(() =>
+  seriesTable({
+    title: chartTitle.value,
+    demo: source.value === 'demo',
+    meta: [],
+    bucketLabel: t('analytics.table.bucket'),
+    currency: currency.value,
+    keys: series.value.keys,
+    curves: curves.value.map((curve) => ({
+      label: metricLabel(curve.id),
+      kind: KIND[curve.unit],
+      values: curve.values,
+    })),
+  }),
+);
+
+const chartItems = computed(() => [
+  { format: 'xlsx', label: t('analytics.export.xlsxData') },
+  { format: 'csv', label: t('analytics.export.csvData') },
+]);
+
+function exportSeries(format: ExportFormat): void {
+  const { from, to } = popularContext.range.value;
+  exportTable(
+    table.value,
+    format,
+    (extension) =>
+      seriesFileName(filters.metric, filters.granularity, dayKey(from), dayKey(to), extension),
+    locale.value,
+    t('analytics.export.demoNote'),
+  );
+}
+
+/* The admin assistant asks the admin to run a page action (`runUiAction`): the page applies the args, waits until the
+   data for them is there and exports in that state. The same functions answer the buttons. */
+interface UiActionsApi {
+  register: (
+    id: string,
+    handler: (args: Record<string, unknown>) => void | Promise<void>,
+  ) => () => void;
+}
+const uiActions = inject<UiActionsApi | null>(UI_ACTIONS_KEY, null);
+const productsSection = ref<InstanceType<typeof RankingSection> | null>(null);
+const categoriesSection = ref<InstanceType<typeof RankingSection> | null>(null);
+
+const asQuery = (args: Record<string, unknown>): Record<string, string> =>
+  Object.fromEntries(Object.entries(args).map(([name, value]) => [name, String(value)]));
+
+/** After the filters changed: let the watchers start their requests, then wait for the answers. */
+async function settle(): Promise<void> {
+  await nextTick();
+  await Promise.all([settled(), share.settled(), products.settled(), categories.settled()]);
+  await nextTick();
+}
+
+async function runSeriesAction(args: Record<string, unknown>): Promise<void> {
+  applyFilters(filters, filtersFromQuery(asQuery(args)));
+  await settle();
+  exportSeries(args.format as ExportFormat);
+}
+
+async function runRankingAction(
+  subject: 'products' | 'categories',
+  args: Record<string, unknown>,
+): Promise<void> {
+  const popular = subject === 'products' ? products : categories;
+  const period = filtersFromQuery(asQuery(args));
+  applyFilters(filters, {
+    ...(period.rangeDays === undefined ? {} : { rangeDays: period.rangeDays }),
+    ...(period.from === undefined ? {} : { from: period.from, to: period.to }),
+  });
+  popular.state.topN =
+    TOP_N_CHOICES.find((n) => String(n) === String(args.limit)) ?? popular.state.topN;
+  popular.state.measure =
+    RANK_MEASURES.find((measure) => measure === args.measure) ?? popular.state.measure;
+  await settle();
+  const section = subject === 'products' ? productsSection : categoriesSection;
+  section.value?.exportAs(args.format as ExportFormat);
+}
+
+const unregister: (() => void)[] = [];
+onMounted(() => {
+  unregister.push(
+    ...(uiActions === null
+      ? []
+      : [
+          uiActions.register('analytics.export.chart', runSeriesAction),
+          uiActions.register('analytics.export.table', runSeriesAction),
+          uiActions.register('analytics.export.top_products', (args) =>
+            runRankingAction('products', args),
+          ),
+          uiActions.register('analytics.export.top_categories', (args) =>
+            runRankingAction('categories', args),
+          ),
+        ]),
+  );
+});
+onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
 </script>
 
 <template>
@@ -96,7 +220,15 @@ const chartTitle = computed(() =>
       />
     </div>
     <div class="analytics__card fold-pane-b" data-test="analytics-chart-card">
-      <h2 data-test="chart-title">{{ chartTitle }}</h2>
+      <div class="analytics__head">
+        <h2 data-test="chart-title">{{ chartTitle }}</h2>
+        <ExportMenu
+          :label="t('analytics.export.chart')"
+          :items="chartItems"
+          field-id="analytics.export.chart"
+          @select="exportSeries($event as ExportFormat)"
+        />
+      </div>
       <p v-if="filters.scale === 'log'" class="analytics__note" data-test="log-note">
         {{ t('analytics.chart.logNote') }}
       </p>
@@ -110,33 +242,44 @@ const chartTitle = computed(() =>
         :name="metricLabel(filters.metric)"
         :readout="readout"
       />
-      <details class="analytics__table" data-test="analytics-table">
-        <summary>{{ t('analytics.table.show') }}</summary>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">{{ t('analytics.table.bucket') }}</th>
-                <th v-for="curve in curves" :key="curve.id" scope="col">
-                  {{ metricLabel(curve.id) }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(key, at) in series.keys" :key="key" data-test="table-row">
-                <th scope="row">{{ formatBucket(key, filters.granularity, locale) }}</th>
-                <td v-for="curve in curves" :key="curve.id" class="analytics__number">
-                  {{ formatValue(curve.values[at] ?? 0, curve.unit, locale) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="analytics__table-bar">
+        <details class="analytics__table" data-test="analytics-table">
+          <summary>{{ t('analytics.table.show') }}</summary>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th v-for="column in table.columns" :key="column.label" scope="col">
+                    {{ column.label }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in table.rows" :key="String(row[0])" data-test="table-row">
+                  <th scope="row">
+                    {{ formatBucket(String(row[0]), filters.granularity, locale) }}
+                  </th>
+                  <td v-for="(cell, at) in row.slice(1)" :key="at" class="analytics__number">
+                    {{ formatCell(cell, table.columns[at + 1]!, locale) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <div class="analytics__table-export">
+          <ExportMenu
+            :label="t('analytics.export.table')"
+            :items="chartItems"
+            field-id="analytics.export.table"
+            @select="exportSeries($event as ExportFormat)"
+          />
         </div>
-      </details>
+      </div>
     </div>
     <div class="analytics__popular" data-test="analytics-popular">
-      <RankingSection subject="products" :popular="products" />
-      <RankingSection subject="categories" :popular="categories" />
+      <RankingSection ref="productsSection" subject="products" :popular="products" />
+      <RankingSection ref="categoriesSection" subject="categories" :popular="categories" />
     </div>
   </section>
 </template>
@@ -171,6 +314,23 @@ const chartTitle = computed(() =>
 }
 .analytics__card > * + * {
   margin-top: 1rem;
+}
+.analytics__head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.analytics__head > h2 {
+  margin: 0;
+}
+.analytics__table-bar {
+  position: relative;
+}
+.analytics__table-export {
+  position: absolute;
+  top: -0.35rem;
+  right: 0;
 }
 .analytics__table summary {
   cursor: pointer;

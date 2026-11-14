@@ -2,6 +2,10 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
+import { rankingFileName } from '../export/download';
+import { exportTable, type ExportFormat } from '../export/exportTable';
+import { rankingTable } from '../export/table';
+import { dayKey } from '../series/buckets';
 import { formatShare, formatValue } from '../series/format';
 import {
   NONE_KEY,
@@ -12,6 +16,7 @@ import {
   type RankSlice,
 } from '../series/ranking';
 import { POPULAR_CHARTS, type Popular } from '../usePopular';
+import ExportMenu from './ExportMenu.vue';
 import PieChart, { type PieSlice } from './PieChart.vue';
 import RankBars, { type BarRow } from './RankBars.vue';
 
@@ -67,11 +72,57 @@ const hrefOf = (id: string | null): string | null => {
 const titleOf = (id: string | null, title: string): string =>
   id === null ? t('analytics.popular.noCategory') : title;
 const field = (name: string): string => `analytics.${props.subject}.${name}`;
+
+const exportItems = computed(() => [
+  { format: 'xlsx', label: t('analytics.export.xlsxRanked') },
+  { format: 'csv', label: t('analytics.export.csvRanked') },
+]);
+const exportField = computed(() => `analytics.export.top_${props.subject}`);
+
+/** The ranked list as the file holds it: the list below, with "Others", in the order of the page. */
+const table = computed(() =>
+  rankingTable({
+    title: headline.value,
+    demo: props.popular.source.value === 'demo',
+    meta: [],
+    ranking: ranking.value,
+    withNumber: props.subject === 'products',
+    rank: t('analytics.popular.list.rank'),
+    name: t(`analytics.popular.${props.subject}.column`),
+    number: t('analytics.popular.list.number'),
+    value: t(`analytics.popular.measure.${ranking.value.measure}`),
+    share: t('analytics.popular.list.share'),
+    others: t('analytics.popular.others'),
+    noCategory: t('analytics.popular.noCategory'),
+  }),
+);
+
+/** Downloads the list that the section shows; the export menu and the admin assistant both call it. */
+function exportAs(format: ExportFormat): void {
+  const { from, to } = props.popular.range.value;
+  exportTable(
+    table.value,
+    format,
+    (extension) =>
+      rankingFileName(props.subject, ranking.value.measure, dayKey(from), dayKey(to), extension),
+    locale.value,
+    t('analytics.export.demoNote'),
+  );
+}
+defineExpose({ exportAs });
 </script>
 
 <template>
   <section class="popular" :data-test="`popular-${subject}`" :data-source="popular.source.value">
-    <h2>{{ t(`analytics.popular.${subject}.title`) }}</h2>
+    <div class="popular__head">
+      <h2>{{ t(`analytics.popular.${subject}.title`) }}</h2>
+      <ExportMenu
+        :label="t(`analytics.export.${subject}`)"
+        :items="exportItems"
+        :field-id="exportField"
+        @select="exportAs($event as ExportFormat)"
+      />
+    </div>
     <form class="popular__controls fold-grid" @submit.prevent>
       <label>
         {{ t('analytics.popular.controls.topN') }}
@@ -171,8 +222,14 @@ const field = (name: string): string => `analytics.${props.subject}.${name}`;
 .popular > * + * {
   margin-top: 1rem;
 }
-.popular > h2 {
-  margin-top: 0;
+.popular__head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.popular__head > h2 {
+  margin: 0;
 }
 .popular__controls {
   display: grid;

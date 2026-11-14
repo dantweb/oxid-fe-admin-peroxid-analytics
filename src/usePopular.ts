@@ -29,6 +29,10 @@ export interface Popular {
   source: Ref<SourceKind>;
   /** resolves when the first live attempt (if any) is settled */
   ready: Promise<void>;
+  /** the period the ranking is for */
+  range: ComputedRef<{ from: Date; to: Date }>;
+  /** resolves when the request for the latest choice is answered (nothing to wait for without a shop) */
+  settled: () => Promise<void>;
 }
 
 /** What a section shares with the page: the period of the filter bar, the demo data and the admin's client. */
@@ -80,11 +84,14 @@ export function usePopular(subject: PopularSubject, context: PopularContext): Po
   }
 
   const ready = refresh();
+  let pending = ready;
   watch(
     () => [context.range.value, state.topN, state.measure],
-    () => void refresh(),
+    () => {
+      pending = refresh();
+    },
   );
 
   const ranking = computed(() => live.value ?? demo.value);
-  return { state, ranking, source, ready };
+  return { state, ranking, source, ready, range: context.range, settled: () => pending };
 }

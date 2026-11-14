@@ -57,6 +57,41 @@ function popularFields(subject: keyof typeof POPULAR): UiFieldLike[] {
   ];
 }
 
+const EXPORT_FIELDS: UiFieldLike[] = [
+  field(
+    'analytics.export.chart',
+    { en: 'Export chart and data', de: 'Diagramm und Daten exportieren' },
+    {
+      en: 'The download button next to the chart title. Downloads the data table of the curve as Excel (XLSX) or CSV.',
+      de: 'Der Download-Knopf neben dem Diagrammtitel. Lädt die Datentabelle der Kurve als Excel (XLSX) oder CSV herunter.',
+    },
+  ),
+  field(
+    'analytics.export.table',
+    { en: 'Export table', de: 'Tabelle exportieren' },
+    {
+      en: 'The download button next to "Show as table". Downloads the table as Excel (XLSX) or CSV.',
+      de: 'Der Download-Knopf neben „Als Tabelle zeigen“. Lädt die Tabelle als Excel (XLSX) oder CSV herunter.',
+    },
+  ),
+  field(
+    'analytics.export.top_products',
+    { en: 'Export popular products', de: 'Beliebte Produkte exportieren' },
+    {
+      en: 'The download button of the Popular products section. Downloads the ranked list with "Others" as Excel (XLSX) or CSV.',
+      de: 'Der Download-Knopf des Abschnitts Beliebte Produkte. Lädt die Rangliste mit „Übrige“ als Excel (XLSX) oder CSV herunter.',
+    },
+  ),
+  field(
+    'analytics.export.top_categories',
+    { en: 'Export popular categories', de: 'Beliebte Kategorien exportieren' },
+    {
+      en: 'The download button of the Popular categories section. Downloads the ranked list with "Others" as Excel (XLSX) or CSV.',
+      de: 'Der Download-Knopf des Abschnitts Beliebte Kategorien. Lädt die Rangliste mit „Übrige“ als Excel (XLSX) oder CSV herunter.',
+    },
+  ),
+];
+
 export const analyticsUiFields: UiFieldLike[] = [
   field(
     'analytics.filter.range',
@@ -100,4 +135,5 @@ export const analyticsUiFields: UiFieldLike[] = [
   ),
   ...popularFields('products'),
   ...popularFields('categories'),
+  ...EXPORT_FIELDS,
 ];

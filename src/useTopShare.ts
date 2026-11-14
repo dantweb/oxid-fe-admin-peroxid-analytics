@@ -14,6 +14,8 @@ export interface TopShare {
   values: ComputedRef<number[]>;
   source: Ref<SourceKind>;
   ready: Promise<void>;
+  /** resolves when the request for the latest choice is answered */
+  settled: () => Promise<void>;
 }
 
 /**
@@ -58,10 +60,18 @@ export function useTopShare(context: ShareContext, choice: PopularState): TopSha
   }
 
   const ready = refresh();
+  let pending = ready;
   watch(
     () => [context.range.value, context.granularity(), choice.topN, choice.measure],
-    () => void refresh(),
+    () => {
+      pending = refresh();
+    },
   );
 
-  return { values: computed(() => live.value ?? demo.value), source, ready };
+  return {
+    values: computed(() => live.value ?? demo.value),
+    source,
+    ready,
+    settled: () => pending,
+  };
 }

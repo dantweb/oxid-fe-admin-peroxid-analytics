@@ -20,6 +20,10 @@ const EXPECTED = [
   'analytics.categories.topN',
   'analytics.categories.measure',
   'analytics.categories.chart',
+  'analytics.export.chart',
+  'analytics.export.table',
+  'analytics.export.top_products',
+  'analytics.export.top_categories',
 ];
 
 describe('uiFields of the analytics plugin', () => {
@@ -46,7 +50,12 @@ describe('uiFields of the analytics plugin', () => {
     const ids = wrapper.findAll('[data-field]').map((element) => element.attributes('data-field'));
     const controls = wrapper.findAll('select, input, textarea');
 
-    expect(controls).toHaveLength(ids.length);
+    const exportMenus = ids.filter((id) => id?.startsWith('analytics.export.'));
+    expect(exportMenus).toHaveLength(4);
+    for (const id of exportMenus) {
+      expect(wrapper.find(`[data-field="${id}"] button[aria-haspopup="menu"]`).exists()).toBe(true);
+    }
+    expect(controls).toHaveLength(ids.length - exportMenus.length);
     expect([...ids].sort()).toEqual([...EXPECTED].sort());
     expect(new Set(ids).size).toBe(ids.length);
     expect(controls.every((control) => control.attributes('data-field'))).toBe(true);

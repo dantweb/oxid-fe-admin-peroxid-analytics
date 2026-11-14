@@ -18,12 +18,18 @@ const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const MAX_SHEET_NAME = 31;
 const LETTERS = 26;
 
-// XML 1.0 cannot carry most control characters, not even escaped
-const INVALID_XML = /[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g;
+/** XML 1.0 cannot carry most control characters, not even escaped: tab, line feed and carriage return stay. */
+const isXmlCharacter = (character: string): boolean => {
+  const code = character.codePointAt(0)!;
+  return code >= 0x20
+    ? code !== 0xfffe && code !== 0xffff
+    : code === 0x09 || code === 0x0a || code === 0x0d;
+};
 
 const escapeXml = (text: string): string =>
-  text
-    .replace(INVALID_XML, '')
+  Array.from(text)
+    .filter(isXmlCharacter)
+    .join('')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')

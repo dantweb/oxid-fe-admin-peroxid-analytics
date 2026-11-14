@@ -32,6 +32,26 @@ export interface UiFieldLike {
   right?: string;
 }
 
+/** One argument of a UI action (`UiActionParam` of oxid-fe-admin). A `date` is `YYYY-MM-DD`. */
+export interface UiActionParamLike {
+  name: string;
+  type: 'enum' | 'date' | 'string' | 'int';
+  values?: string[];
+  required: boolean;
+}
+
+/** One page action for the admin's UI map (`UiActionDescriptor` of oxid-fe-admin, `src/shell/types.ts`). */
+export interface UiActionLike {
+  id: string;
+  label: LocalizedText;
+  help: LocalizedText;
+  route: string;
+  right: string;
+  /** a declared UI field: the control that is highlighted while the action runs */
+  field: string;
+  params: UiActionParamLike[];
+}
+
 export type ViewLoader = () => Promise<{ default: Component }>;
 
 export interface AdminPluginLike {
@@ -45,6 +65,8 @@ export interface AdminPluginLike {
   messages?: Record<string, Record<string, unknown>>;
   /** the fields the plugin's screens expose to the UI map, so the admin assistant can point at them */
   uiFields?: UiFieldLike[];
+  /** the page actions the admin assistant may run (`registerUiAction` of the page is the handler) */
+  uiActions?: UiActionLike[];
   requires?: string[];
   /** the admin calls it once at boot with its GraphQL client (core's `PluginContext`) */
   setup?(context: { client: Executor }): void | Promise<void>;

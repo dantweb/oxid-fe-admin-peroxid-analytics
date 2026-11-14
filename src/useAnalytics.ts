@@ -46,6 +46,8 @@ export interface Analytics {
   currency: Ref<string>;
   /** resolves when the first live attempt (if any) is settled — for tests and the "loading" state */
   ready: Promise<void>;
+  /** resolves when the request for the latest period and granularity is answered */
+  settled: () => Promise<void>;
   /** what the popular products and categories share with the page: the period, the demo data, the client */
   popularContext: PopularContext;
   /** the popular context and the granularity, for the curve "Share of top N products" */
@@ -121,7 +123,10 @@ export function useAnalytics({
   }
 
   const ready = refresh();
-  watch(query, () => void refresh());
+  let pending = ready;
+  watch(query, () => {
+    pending = refresh();
+  });
 
   const series = computed(() => live.value?.current ?? demoSeries.value);
   const current = computed(() => totals(series.value));
@@ -136,6 +141,7 @@ export function useAnalytics({
     source,
     currency,
     ready,
+    settled: () => pending,
     popularContext,
     shareContext,
   };

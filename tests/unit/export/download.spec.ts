@@ -29,10 +29,8 @@ describe('downloadFile', () => {
       return 'blob:test/1';
     });
     URL.revokeObjectURL = vi.fn((url: string) => void revoked.push(url));
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
-      this: HTMLAnchorElement,
-    ) {
-      clicked = this;
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+      clicked = document.querySelector<HTMLAnchorElement>('a[download]');
     });
     vi.useFakeTimers();
   });

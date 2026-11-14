@@ -32,9 +32,9 @@ function choosePeriod(value: string): void {
       {{ t('analytics.filters.range') }}
       <select
         :value="periodChoice"
-        @change="choosePeriod(($event.target as HTMLSelectElement).value)"
         data-field="analytics.filter.range"
         data-test="filter-range"
+        @change="choosePeriod(($event.target as HTMLSelectElement).value)"
       >
         <option v-for="days in RANGES" :key="days" :value="days">
           {{ t(`analytics.range.d${days}`) }}
