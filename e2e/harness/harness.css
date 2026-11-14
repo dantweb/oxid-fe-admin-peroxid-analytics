@@ -1,0 +1,81 @@
+/*
+ * What the admin shell gives the plugin, as far as the page needs it: the theme tokens of PEROXID light and dark (the
+ * values of the theme config files of peroxid-admin, so the contrast checks run on real colours) and the few shell
+ * rules the page leans on (page padding, form controls, tables, the scroll box of a wide table).
+ */
+:root {
+  --oxfe-color-primary: #be04c1;
+  --oxfe-color-primary-contrast: #ffffff;
+  --oxfe-color-text: #2a0f2b;
+  --oxfe-color-text-muted: #6f4f70;
+  --oxfe-color-border: #efc4f0;
+  --oxfe-color-input-border: #d9a3da;
+  --oxfe-color-background: #fff9fd;
+  --oxfe-color-surface: #ffffff;
+  --oxfe-color-link: #be04c1;
+  --oxfe-color-accent: #e63946;
+  --oxfe-font-family: Roboto, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --oxfe-color-primary: #f29cf4;
+  --oxfe-color-primary-contrast: #2a0f2b;
+  --oxfe-color-text: #f6e9f7;
+  --oxfe-color-text-muted: #c9b3cb;
+  --oxfe-color-border: #4a2f4c;
+  --oxfe-color-input-border: #6a4a6c;
+  --oxfe-color-background: #1b101c;
+  --oxfe-color-surface: #271a28;
+  --oxfe-color-link: #f29cf4;
+  --oxfe-color-accent: #ff8a96;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  font-family: var(--oxfe-font-family);
+  color: var(--oxfe-color-text);
+  background: var(--oxfe-color-background);
+}
+main {
+  padding: 1.5rem 1rem;
+  box-sizing: border-box;
+}
+h1,
+h2 {
+  margin: 0 0 1rem;
+}
+label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+select {
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  color: var(--oxfe-color-text);
+  background: var(--oxfe-color-surface);
+  border: 1px solid var(--oxfe-color-input-border);
+  border-radius: 4px;
+}
+.analytics-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem 1rem;
+}
+.page--flat {
+  display: grid;
+  gap: 1rem;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--oxfe-color-border);
+}

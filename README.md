@@ -27,6 +27,17 @@ data is read. The PEROXID project admin ([`peroxid-admin`](https://github.com/da
 The filters scope everything below them: the tiles (with the change against the previous period of the
 same length), the curve, the readout and the table.
 
+## Popular products and categories
+
+Below the curve: **Popular products** and **Popular categories** of the period of the filter bar. Each section has a
+headline (what the top N hold of the whole), a sorted list, a chart (a **pie** or **bars**) and three controls: **Show**
+(top 3, 5, 10, 15 or 20; default 5), **Rank by** (sales, units sold, number of orders) and **Chart**. "Others" is the
+remainder, so the chart shows the whole and the shares add up to 100 %. A variant counts for its parent product; a sale
+counts for the main category of its product only. With the shop module the numbers are the shop's
+(`adminAnalyticsTopProducts`, `adminAnalyticsTopCategories`); without it a deterministic demo ranking that adds up to the
+demo orders is shown. The controls have `data-field` ids (`analytics.products.topN`, …) and `uiFields` descriptors for
+the admin assistant (`src/uiFields.ts`).
+
 ## Live data from the shop (optional)
 
 The plugin stays a demo without a backend. With the OXID module **`peroxid_analytics`**
@@ -87,6 +98,14 @@ npm run lint && npm run type-check && npm run knip && npm audit && npm run test:
 
 `tests/unit/` covers the atomizer port, the generator, the bucket and metric maths, the scales and curves,
 the plugin object and the mounted views (vue-test-utils, happy-dom). CI runs the same gate.
+
+The mocked e2e (`e2e/analytics-popular.spec.ts`, Playwright + axe) runs the analytics page on a harness page with the
+PEROXID light and dark tokens and a stand-in shop; it needs `@playwright/test` and `@axe-core/playwright` as dev
+dependencies. `E2E_SCREENSHOTS=<dir>` writes the screenshots of the popular sections:
+
+```bash
+npx playwright test -c e2e/playwright.config.ts
+```
 
 ## Licence
 

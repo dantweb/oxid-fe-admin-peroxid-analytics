@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **Popular products** and **Popular categories** (Sprint 37): two sections below the curve with a headline ("Top 5
+  products: 42.3 % of sales"), a sorted list (rank, title, value, share; products and categories link to their pages
+  with the shop's data), and a chart with a **Pie / Bars** switch. The pie is hand-drawn SVG in theme tokens with a legend
+  that names every slice; "Others" makes the chart show the whole and the shares add up to exactly 100 %. Choices per
+  section: **Top N** (3, 5, 10, 15, 20; default 5) and the measure (sales, units sold, number of orders).
+  Variants count for their parent product, a sale for the main category only (rules of the shop module).
+- Sources: the shop's `adminAnalyticsTopProducts` / `adminAnalyticsTopCategories` (module `peroxid_analytics`), a
+  deterministic demo ranking (`src/ecw/demoRanking.ts`) that adds up to the demo orders of the period without it.
+- **uiFields**: the five filters and the three controls of each section have `data-field` ids and descriptors (en, de),
+  so the admin assistant can point at them.
+- Mocked e2e with axe in both themes at 1280 and 360 px (`e2e/`, a harness page with the PEROXID tokens).
+
 ## 0.5.0
 
 - **Foldables** (oxid-fe-admin sprint FOLD-1): the stat tiles and the filter row carry the admin's `fold-grid` class, so

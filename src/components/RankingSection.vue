@@ -160,6 +160,7 @@ const field = (name: string): string => `analytics.${props.subject}.${name}`;
 
 <style scoped>
 .popular {
+  min-width: 0; /* a grid item may shrink below its widest table: the table scrolls inside its box */
   padding: 1.5rem;
   background: var(--oxfe-color-surface, #ffffff);
   border-radius: var(--oxfe-radius-lg, 8px);
@@ -209,6 +210,7 @@ const field = (name: string): string => `analytics.${props.subject}.${name}`;
   font-size: 0.8125rem;
 }
 .popular__number {
+  white-space: nowrap;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
