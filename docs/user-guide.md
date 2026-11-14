@@ -35,6 +35,9 @@ The filter row is at the top of the page. All parts of the page use the filters.
 
 On a logarithmic scale, a value below 1 sits on the base line. The page shows a note about this.
 
+The filter row and the tiles use the same columns. On a wide screen there are 5 columns. On a narrower content area there
+are 3, 2 or 1 columns. The width of the content changes when you open or fold the sidebar of the admin. The page follows it.
+
 ## 4 The tiles
 
 Five tiles show the totals of the period: Orders, Sales, New customers, Sales per customer and Average order. Each tile

@@ -207,6 +207,60 @@ this key, the handlers are not registered. The page still works.
 5. Update `tests/unit/uiActions.spec.ts`, `tests/unit/routeState.spec.ts` and `tests/unit/uiFields.spec.ts`.
 6. Add the case to `e2e/analytics-control.spec.ts`.
 
+## 7A The layout grid
+
+The page has one layout grid. The filter row and the stat row use the same columns. Filter n and tile n have the same left
+and right edge at every width. The chart card and the two ranking sections have the same outer edges and the same gap.
+
+### 7A.1 How it works
+
+- `section.analytics` is a **container** (`container: analytics / inline-size`). The steps follow its width, not the width
+  of the viewport. The width of the content changes when the sidebar of the admin is open or folded.
+- The custom property `--analytics-gap` (1 rem) is the one gap of the page.
+- The class `.analytics-row` makes a grid of `--analytics-columns` columns of `minmax(0, 1fr)`. The filter form
+  (`FilterBar`) and the stat row both have this class.
+- `.analytics-row > *` has `min-width: 0`. A control or a tile cannot make a column wider than its share.
+- The value of a tile (`.stat__value`) has the font size `clamp(1.25rem, 2.2cqi, 1.875rem)`. It follows the container, so the
+  value fits a column of the five-column step.
+
+### 7A.2 The steps
+
+| Width of the container     | Columns of the filter row and the stat row | Ranking sections              |
+| -------------------------- | ------------------------------------------ | ----------------------------- |
+| Less than 26 rem           | 1                                          | 1 column, one under the other |
+| 26 rem to less than 40 rem | 2                                          | 1 column                      |
+| 40 rem to less than 48 rem | 3                                          | 1 column                      |
+| 48 rem to less than 64 rem | 3                                          | 2 columns, side by side       |
+| 64 rem or more             | 5                                          | 2 columns, side by side       |
+
+The controls of a ranking section (Show, Rank by, Chart) have a grid of their own. The section is a container too
+(`container: popular / inline-size`). The controls are in 3 columns when the section is 28 rem wide or wider. They are in
+one column when it is narrower. They are never in a ragged 2 + 1.
+
+The foldable layout of the admin (class `fold-grid`) stays on the filter row and on the stat row. Both rows have the same
+class, so both rows keep the same columns in that posture.
+
+### 7A.3 Procedure: add a control to the filter row or a tile
+
+1. Add the element as a direct child of the row. Do not wrap it.
+2. Do not set a width on it. The grid sets the width.
+3. Make the filter row and the stat row have the same number of items. Otherwise the items no longer pair by position.
+4. Run `e2e/analytics-grid.spec.ts`.
+
+### 7A.4 The test
+
+`e2e/analytics-grid.spec.ts` measures the bounding boxes in the browser. The harness takes 14 rem (sidebar open) or 4 rem
+(sidebar folded) from the page: `?sidebar=open` or `?sidebar=folded`. The widths are 1440, 1280, 1024, 768 and 360 px. At
+360 px only the folded case applies, because a phone has a drawer and no sidebar.
+
+The test checks for each case:
+
+- filter n and tile n have equal left and right edges (tolerance 1 px);
+- the chart card and the ranking sections have the outer edges of the rows, and the gap between the sections equals the gap of the rows;
+- there is no sideways scroll, and no tile or control is wider than its box;
+- the controls of a ranking section are in one row of three or in one column of three;
+- axe finds no violation.
+
 ## 8 Tests
 
 | Command                                           | What it does                                              |
