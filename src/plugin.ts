@@ -1,5 +1,6 @@
 import { rememberClient, type Executor } from './liveSource';
 import { de, en } from './messages';
+import { analyticsUiFields } from './uiFields';
 import type { AdminPluginLike } from './types';
 
 /**
@@ -24,6 +25,7 @@ export const analyticsPlugin = {
   ],
   overrides: { dashboard: () => import('./AnalyticsTile.vue') },
   messages: { en, de },
+  uiFields: analyticsUiFields,
   setup(context: { client: Executor }): void {
     rememberClient(context.client);
   },
