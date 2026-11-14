@@ -2,6 +2,7 @@ import { computed, reactive, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { generateDemoData } from './ecw/demoData';
 import type { AnalyticsData } from './ecw/models';
 import { fetchLiveSeries, liveClient, type Executor, type SourceKind } from './liveSource';
+import type { PopularContext } from './usePopular';
 import { lastDays, previousRange, type Granularity } from './series/buckets';
 import type { ChartKind } from './series/curve';
 import { computeSeries, totals, type MetricId, type Series } from './series/metrics';
@@ -30,6 +31,8 @@ export interface Analytics {
   currency: Ref<string>;
   /** resolves when the first live attempt (if any) is settled — for tests and the "loading" state */
   ready: Promise<void>;
+  /** what the popular products and categories share with the page: the period, the demo data, the client */
+  popularContext: PopularContext;
 }
 
 let cached: AnalyticsData | null = null;
@@ -103,5 +106,6 @@ export function useAnalytics({
   const series = computed(() => live.value?.current ?? demoSeries.value);
   const current = computed(() => totals(series.value));
   const previous = computed(() => totals(live.value?.previous ?? demoPrevious.value));
-  return { filters, series, current, previous, source, currency, ready };
+  const popularContext: PopularContext = { range, data: demo, client };
+  return { filters, series, current, previous, source, currency, ready, popularContext };
 }

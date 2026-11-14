@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { analyticsPlugin } from '../../src';
 import {
+  fetchLiveRanking,
   fetchLiveSeries,
   liveClient,
   rememberClient,
+  RANKING_QUERIES,
   SERIES_QUERY,
+  toRanking,
   toSeries,
   type Executor,
+  type LiveRankingAnswer,
 } from '../../src/liveSource';
 import { useAnalytics } from '../../src/useAnalytics';
 
@@ -147,5 +151,105 @@ describe('the plugin remembers the admin’s client', () => {
     expect(liveClient()).toBe(client);
     expect(analytics.source.value).toBe('live');
     rememberClient(null);
+  });
+});
+
+const rankingAnswer = (): LiveRankingAnswer => ({
+  measure: 'UNITS',
+  currency: 'CHF',
+  total: 10,
+  topTotal: 8,
+  topShare: 80,
+  others: 2,
+  othersShare: 20,
+  items: [
+    { rank: 1, entityId: 'p1', number: 'A-1', title: 'Alpha', value: 5, share: 50 },
+    { rank: 2, entityId: null, number: null, title: 'No category', value: 3, share: 30 },
+  ],
+});
+
+describe('toRanking', () => {
+  it('maps the module’s ranking to the plugin’s: lower-case measure, id instead of entityId', () => {
+    const ranking = toRanking(rankingAnswer());
+
+    expect(ranking).toEqual({
+      measure: 'units',
+      currency: 'CHF',
+      total: 10,
+      topTotal: 8,
+      topShare: 80,
+      others: 2,
+      othersShare: 20,
+      items: [
+        { rank: 1, id: 'p1', number: 'A-1', title: 'Alpha', value: 5, share: 50 },
+        { rank: 2, id: null, number: null, title: 'No category', value: 3, share: 30 },
+      ],
+    });
+  });
+});
+
+describe('fetchLiveRanking', () => {
+  const range = { from: new Date(2026, 10, 3), to: new Date(2026, 10, 4) };
+
+  function ranking(field: string): Executor & { calls: Record<string, unknown>[] } {
+    const calls: Record<string, unknown>[] = [];
+    return {
+      calls,
+      execute: async <T>(query: string, variables?: Record<string, unknown>): Promise<T> => {
+        calls.push({ query, ...variables });
+        return { [field]: rankingAnswer() } as unknown as T;
+      },
+    };
+  }
+
+  it('asks the products with whole days, the limit and the module’s measure name', async () => {
+    const client = ranking('adminAnalyticsTopProducts');
+
+    const live = await fetchLiveRanking(client, 'products', range, 10, 'units');
+
+    expect(live?.items).toHaveLength(2);
+    expect(client.calls[0]).toEqual({
+      query: RANKING_QUERIES.products,
+      from: '2026-11-03',
+      to: '2026-11-04',
+      limit: 10,
+      measure: 'UNITS',
+    });
+    expect(RANKING_QUERIES.products).toContain(
+      'adminAnalyticsTopProducts(from: $from, to: $to, limit: $limit, measure: $measure)',
+    );
+  });
+
+  it('asks the categories with their own query', async () => {
+    const client = ranking('adminAnalyticsTopCategories');
+
+    const live = await fetchLiveRanking(client, 'categories', range, 3, 'orders');
+
+    expect(live?.currency).toBe('CHF');
+    expect(client.calls[0]).toMatchObject({
+      query: RANKING_QUERIES.categories,
+      measure: 'ORDERS',
+      limit: 3,
+    });
+    expect(RANKING_QUERIES.categories).toContain('adminAnalyticsTopCategories(');
+  });
+
+  it('asks for aggregates only: no order, no customer', () => {
+    for (const query of Object.values(RANKING_QUERIES)) {
+      expect(query).toContain('items { rank entityId number title value share }');
+      expect(query).not.toMatch(/email|customer|orderId/i);
+    }
+  });
+
+  it('answers null when the shop refuses (no module, no right, bad limit) or answers nothing', async () => {
+    const refusing: Executor = {
+      execute: async () => {
+        throw new Error('Cannot query field "adminAnalyticsTopProducts" on type "Query"');
+      },
+    };
+    const empty: Executor = { execute: async <T>(): Promise<T> => ({}) as unknown as T };
+
+    expect(await fetchLiveRanking(refusing, 'products', range, 5, 'sales')).toBeNull();
+    expect(await fetchLiveRanking(empty, 'categories', range, 5, 'sales')).toBeNull();
   });
 });
