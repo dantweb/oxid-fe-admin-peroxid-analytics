@@ -125,18 +125,22 @@ The browser saves the file. The file has the data that you see on the page.
 
 ## 9 Links to a view
 
-The address of the page holds the filters. Copy the address to send the same view to a colleague.
+The address of the page holds the whole state of the page. Copy the address to send the same view to a colleague.
 
-| Query         | Meaning                                                                                               |
-| ------------- | ----------------------------------------------------------------------------------------------------- |
-| `period`      | 7, 30, 90 or 180 days                                                                                 |
-| `from`, `to`  | A custom period. Use `YYYY-MM-DD`. The period has at most 366 days.                                   |
-| `granularity` | `daily` or `weekly`                                                                                   |
-| `curve`       | `orders`, `sales`, `customers`, `ordersPerCustomer`, `salesPerCustomer`, `averageOrder` or `topShare` |
-| `scale`       | `linear` or `log`                                                                                     |
-| `chart`       | `linear`, `curved` or `bars`                                                                          |
+| Query                        | Meaning                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `period`                     | 7, 30, 90 or 180 days                                                                                   |
+| `from`, `to`                 | A custom period. Use `YYYY-MM-DD`. The period has at most 366 days.                                     |
+| `granularity`                | `daily` or `weekly`                                                                                     |
+| `curve`                      | `orders`, `sales`, `customers`, `ordersPerCustomer`, `salesPerCustomer`, `averageOrder` or `topShare`   |
+| `scale`                      | `linear` or `log`                                                                                       |
+| `chart`                      | `linear`, `curved` or `bars` (the chart of the curve)                                                   |
+| `table`                      | `open`. The table under the chart is open. Without the key, it is closed.                               |
+| `pTop`, `pMeasure`, `pChart` | Popular products: Top N (3, 5, 10, 15, 20), measure (`sales`, `units`, `orders`), chart (`pie`, `bars`) |
+| `cTop`, `cMeasure`, `cChart` | Popular categories: the same choices                                                                    |
 
-A value that is not allowed is ignored. The filter then keeps its default value.
+A key that has its default value is not in the address. A value that is not allowed is ignored. The control then keeps its
+default value.
 
 ## 10 Keyboard use
 
@@ -149,27 +153,41 @@ A value that is not allowed is ignored. The filter then keeps its default value.
 
 ## 11 The admin assistant on this page
 
-The assistant can do two things for the analytics page.
+The assistant can do everything on the analytics page that you can do with the mouse. It has three kinds of help.
 
 ### 11.1 Show where a control is
 
 Ask, for example, "Where do I choose how many top products are shown?". The assistant gives a **Show me** button. The
 button highlights the control.
 
-The assistant can highlight these controls: the five filters, the three controls of each ranking section, and the four
-export buttons.
+The assistant can highlight each control of the page: the five filters, **Show as table**, the three controls of each
+ranking section, and the four export buttons.
 
-### 11.2 Run an export
+### 11.2 Change the view
 
-Ask, for example, "Export the new customers of last month as Excel". The assistant gives a card with the button
-**Run: <name>**. When you select it, the page opens with the filters, the export button is highlighted, and the file
-downloads.
+Ask, for example, "Show the popular categories, top 3, as bars". The page changes at once. You do not select a button.
+The card of the assistant shows what it did and a **Show again** button.
 
-| Action                            | What it exports                            |
-| --------------------------------- | ------------------------------------------ |
-| `analytics.export.chart`          | The chart data as PDF, XLSX or CSV         |
-| `analytics.export.table`          | The table as XLSX or CSV                   |
-| `analytics.export.top_products`   | The popular products as PDF, XLSX or CSV   |
-| `analytics.export.top_categories` | The popular categories as PDF, XLSX or CSV |
+| Action                   | What it sets                                                                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `analytics.show`         | The period (`period`, or `from` and `to`), the granularity, the curve, the scale, the chart type (`chart`), and the table (`table`: open or closed)        |
+| `analytics.popular.show` | One ranking section: `subject` (products or categories), `limit` (3, 5, 10, 15, 20), `measure` and `chart` (pie or bars). The page scrolls to the section. |
+
+A view action changes only the view. It does not download a file and does not change data.
+
+### 11.3 Run an export
+
+Ask, for example, "Export the popular categories, top 3, as bars as a PDF". The assistant gives a card with the button
+**Run: <name>**. You must select the button, because the browser allows a download only after a click. When you select it,
+the page sets the view, the export button is highlighted, and the file downloads.
+
+| Action                            | What it exports                            | Options that it sets before it exports                |
+| --------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| `analytics.export.chart`          | The chart data as PDF, XLSX or CSV         | All options of `analytics.show`                       |
+| `analytics.export.table`          | The table as XLSX or CSV                   | All options of `analytics.show`                       |
+| `analytics.export.top_products`   | The popular products as PDF, XLSX or CSV   | The period, `limit`, `measure`, `chart` (pie or bars) |
+| `analytics.export.top_categories` | The popular categories as PDF, XLSX or CSV | The period, `limit`, `measure`, `chart` (pie or bars) |
+
+The PDF of a ranking shows the chart that you chose (pie or bars) and the legend.
 
 You must have the right `ADMIN_ANALYTICS_VIEW`. If a right is missing, the admin shows an error message.
