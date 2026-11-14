@@ -27,7 +27,11 @@ function choosePeriod(value: string): void {
 </script>
 
 <template>
-  <form class="analytics-filters fold-grid" data-test="analytics-filters" @submit.prevent>
+  <form
+    class="analytics-filters analytics-row fold-grid"
+    data-test="analytics-filters"
+    @submit.prevent
+  >
     <label>
       {{ t('analytics.filters.range') }}
       <select
@@ -89,3 +93,14 @@ function choosePeriod(value: string): void {
     </label>
   </form>
 </template>
+
+<style scoped>
+/* the grid (`.analytics-row`) is the page's; a control fills its column */
+label {
+  min-width: 0;
+}
+select {
+  width: 100%;
+  min-width: 0;
+}
+</style>

@@ -320,6 +320,8 @@ defineExpose({ exportAs });
 
 <style scoped>
 .popular {
+  /* the controls follow the width of the section, not of the page */
+  container: popular / inline-size;
   min-width: 0; /* a grid item may shrink below its widest table: the table scrolls inside its box */
   padding: 1.5rem;
   background: var(--oxfe-color-surface, #ffffff);
@@ -342,8 +344,20 @@ defineExpose({ exportAs });
 }
 .popular__controls {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-  gap: 0.75rem 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--analytics-gap, 1rem);
+}
+.popular__controls > label {
+  min-width: 0;
+}
+.popular__controls select {
+  width: 100%;
+  min-width: 0;
+}
+@container popular (min-width: 28rem) {
+  .popular__controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 .popular__note {
   margin: 0;

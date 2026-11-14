@@ -1,5 +1,3 @@
-import { watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { CHART_KINDS } from './series/curve';
 import { METRICS } from './series/metrics';
 import { SHARE_CURVE } from './series/shareCurve';
@@ -96,30 +94,4 @@ export function applyFilters(filters: AnalyticsFilters, found: Partial<Analytics
       Object.assign(filters, { [name]: value });
     }
   }
-}
-
-const sameQuery = (left: Record<string, unknown>, right: Record<string, string>): boolean =>
-  JSON.stringify(Object.entries(left).sort()) === JSON.stringify(Object.entries(right).sort());
-
-/**
- * Keeps the filters and the route query in step: the query opens (and re-opens, while the page is shown) the view, and a
- * changed filter writes the query back with `replace`, so the address is always a link to what is on screen.
- */
-export function useRouteFilters(filters: AnalyticsFilters): void {
-  const route = useRoute();
-  const router = useRouter();
-  applyFilters(filters, filtersFromQuery(route.query));
-  watch(
-    () => route.query,
-    (query) => applyFilters(filters, filtersFromQuery(query)),
-  );
-  watch(
-    () => ({ ...filters }),
-    () => {
-      const query = queryFromFilters(filters);
-      if (!sameQuery(route.query, query)) {
-        void router.replace({ query });
-      }
-    },
-  );
 }
