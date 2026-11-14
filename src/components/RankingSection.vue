@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RouterLink } from 'vue-router';
+import { barsToPng, svgToPng, type ChartPng } from '../export/chartImage';
 import { rankingFileName } from '../export/download';
+import { exportPdf } from '../export/exportPdf';
 import { exportTable, type ExportFormat } from '../export/exportTable';
 import { rankingTable } from '../export/table';
 import { dayKey } from '../series/buckets';
@@ -73,7 +75,10 @@ const titleOf = (id: string | null, title: string): string =>
   id === null ? t('analytics.popular.noCategory') : title;
 const field = (name: string): string => `analytics.${props.subject}.${name}`;
 
+const root = ref<HTMLElement | null>(null);
+
 const exportItems = computed(() => [
+  { format: 'pdf', label: t('analytics.export.pdfRanked') },
   { format: 'xlsx', label: t('analytics.export.xlsxRanked') },
   { format: 'csv', label: t('analytics.export.csvRanked') },
 ]);
@@ -97,30 +102,84 @@ const table = computed(() =>
   }),
 );
 
+const barColours = (): { fill: string; muted: string; text: string; track: string } => {
+  const colour = (
+    selector: string,
+    property: 'backgroundColor' | 'color',
+    fallback: string,
+  ): string => {
+    const element = root.value?.querySelector(selector);
+    return element === null || element === undefined
+      ? fallback
+      : getComputedStyle(element)[property];
+  };
+  const fill = colour('.bars__fill', 'backgroundColor', '#2471a3');
+  return {
+    fill,
+    muted: colour('.bars__row--others .bars__fill', 'backgroundColor', fill),
+    text: root.value === null ? '#333333' : getComputedStyle(root.value).color,
+    track: colour('.bars__track', 'backgroundColor', '#e0e0e0'),
+  };
+};
+
+/** The chart as the section shows it, as an image: the pie's SVG, or the bars drawn from the colours on screen. */
+async function chartImage(): Promise<ChartPng | null> {
+  if (props.popular.state.chart === 'pie') {
+    const svg = root.value?.querySelector<SVGSVGElement>('[data-test="pie-svg"]') ?? null;
+    return svg === null ? null : svgToPng(svg);
+  }
+  return barsToPng(barRows.value, barColours());
+}
+
 /** Downloads the list that the section shows; the export menu and the admin assistant both call it. */
-function exportAs(format: ExportFormat): void {
+async function exportAs(format: ExportFormat): Promise<void> {
   const { from, to } = props.popular.range.value;
-  exportTable(
-    table.value,
-    format,
-    (extension) =>
-      rankingFileName(props.subject, ranking.value.measure, dayKey(from), dayKey(to), extension),
-    locale.value,
-    t('analytics.export.demoNote'),
-  );
+  const fileName = (extension: ExportFormat): string =>
+    rankingFileName(props.subject, ranking.value.measure, dayKey(from), dayKey(to), extension);
+  if (format === 'pdf') {
+    const period = t('analytics.export.period', { from: dayKey(from), to: dayKey(to) });
+    const measure = t('analytics.export.measure', {
+      value: t(`analytics.popular.measure.${ranking.value.measure}`),
+    });
+    const source = t('analytics.export.source', {
+      value: t(
+        props.popular.source.value === 'live'
+          ? 'analytics.export.sourceLive'
+          : 'analytics.export.sourceDemo',
+      ),
+    });
+    await exportPdf(
+      { ...table.value, meta: [period, measure, source] },
+      await chartImage(),
+      fileName('pdf'),
+      {
+        locale: locale.value,
+        demoNote: t('analytics.export.demoNote'),
+        created: (date) => t('analytics.export.created', { date }),
+        pageOf: (page, pages) => t('analytics.export.page', { page, pages }),
+      },
+    );
+    return;
+  }
+  exportTable(table.value, format, fileName, locale.value, t('analytics.export.demoNote'));
 }
 defineExpose({ exportAs });
 </script>
 
 <template>
-  <section class="popular" :data-test="`popular-${subject}`" :data-source="popular.source.value">
+  <section
+    ref="root"
+    class="popular"
+    :data-test="`popular-${subject}`"
+    :data-source="popular.source.value"
+  >
     <div class="popular__head">
       <h2>{{ t(`analytics.popular.${subject}.title`) }}</h2>
       <ExportMenu
         :label="t(`analytics.export.${subject}`)"
         :items="exportItems"
         :field-id="exportField"
-        @select="exportAs($event as ExportFormat)"
+        @select="void exportAs($event as ExportFormat)"
       />
     </div>
     <form class="popular__controls fold-grid" @submit.prevent>

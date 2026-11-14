@@ -3,6 +3,7 @@ import type { PopularSubject, RankMeasure } from '../series/ranking';
 
 export const MIME = {
   csv: 'text/csv;charset=utf-8',
+  pdf: 'application/pdf',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 } as const;
 

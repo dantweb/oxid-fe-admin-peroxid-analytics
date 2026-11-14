@@ -6,7 +6,9 @@ import FilterBar from './components/FilterBar.vue';
 import LineChart, { type ReadoutRow } from './components/LineChart.vue';
 import RankingSection from './components/RankingSection.vue';
 import StatTile from './components/StatTile.vue';
+import { svgToPng } from './export/chartImage';
 import { seriesFileName } from './export/download';
+import { exportPdf } from './export/exportPdf';
 import { exportTable, type ExportFormat } from './export/exportTable';
 import { formatCell, seriesTable, type ColumnKind } from './export/table';
 import { dayKey } from './series/buckets';
@@ -117,12 +119,54 @@ const table = computed(() =>
   }),
 );
 
-const chartItems = computed(() => [
+const tableItems = computed(() => [
   { format: 'xlsx', label: t('analytics.export.xlsxData') },
   { format: 'csv', label: t('analytics.export.csvData') },
 ]);
+/** The chart menu adds the PDF: the chart as an image and the table. */
+const chartItems = computed(() => [
+  { format: 'pdf', label: t('analytics.export.pdfChart') },
+  ...tableItems.value,
+]);
+const chartCard = ref<HTMLElement | null>(null);
 
-function exportSeries(format: ExportFormat): void {
+/** The meta lines of a file: what the admin chose, so the file says what it shows. */
+const meta = computed(() => {
+  const { from, to } = popularContext.range.value;
+  const label = (key: string, value: string): string => t(`analytics.export.${key}`, { value });
+  return [
+    t('analytics.export.period', { from: dayKey(from), to: dayKey(to) }),
+    label('granularity', t(`analytics.granularity.${filters.granularity}`)),
+    label('curve', metricLabel(filters.metric)),
+    label('scale', t(`analytics.scale.${filters.scale}`)),
+    label(
+      'source',
+      t(source.value === 'live' ? 'analytics.export.sourceLive' : 'analytics.export.sourceDemo'),
+    ),
+  ];
+});
+
+async function exportSeriesPdf(): Promise<void> {
+  const { from, to } = popularContext.range.value;
+  const svg = chartCard.value?.querySelector<SVGSVGElement>('svg.chart__svg') ?? null;
+  await exportPdf(
+    { ...table.value, meta: meta.value },
+    svg === null ? null : await svgToPng(svg),
+    seriesFileName(filters.metric, filters.granularity, dayKey(from), dayKey(to), 'pdf'),
+    {
+      locale: locale.value,
+      demoNote: t('analytics.export.demoNote'),
+      created: (date) => t('analytics.export.created', { date }),
+      pageOf: (page, pages) => t('analytics.export.page', { page, pages }),
+    },
+  );
+}
+
+async function exportSeries(format: ExportFormat): Promise<void> {
+  if (format === 'pdf') {
+    await exportSeriesPdf();
+    return;
+  }
   const { from, to } = popularContext.range.value;
   exportTable(
     table.value,
@@ -159,7 +203,15 @@ async function settle(): Promise<void> {
 async function runSeriesAction(args: Record<string, unknown>): Promise<void> {
   applyFilters(filters, filtersFromQuery(asQuery(args)));
   await settle();
-  exportSeries(args.format as ExportFormat);
+  await exportSeries(args.format as ExportFormat);
+}
+
+/** The table has no chart image: the admin's PDF action is for the chart, the ranking sections and nothing else. */
+async function runTableAction(args: Record<string, unknown>): Promise<void> {
+  if (args.format === 'pdf') {
+    throw new Error('format: the table is exported as xlsx or csv');
+  }
+  await runSeriesAction(args);
 }
 
 async function runRankingAction(
@@ -178,7 +230,7 @@ async function runRankingAction(
     RANK_MEASURES.find((measure) => measure === args.measure) ?? popular.state.measure;
   await settle();
   const section = subject === 'products' ? productsSection : categoriesSection;
-  section.value?.exportAs(args.format as ExportFormat);
+  await section.value?.exportAs(args.format as ExportFormat);
 }
 
 const unregister: (() => void)[] = [];
@@ -188,7 +240,7 @@ onMounted(() => {
       ? []
       : [
           uiActions.register('analytics.export.chart', runSeriesAction),
-          uiActions.register('analytics.export.table', runSeriesAction),
+          uiActions.register('analytics.export.table', runTableAction),
           uiActions.register('analytics.export.top_products', (args) =>
             runRankingAction('products', args),
           ),
@@ -219,14 +271,14 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
         :unit="metricById(id).unit"
       />
     </div>
-    <div class="analytics__card fold-pane-b" data-test="analytics-chart-card">
+    <div ref="chartCard" class="analytics__card fold-pane-b" data-test="analytics-chart-card">
       <div class="analytics__head">
         <h2 data-test="chart-title">{{ chartTitle }}</h2>
         <ExportMenu
           :label="t('analytics.export.chart')"
           :items="chartItems"
           field-id="analytics.export.chart"
-          @select="exportSeries($event as ExportFormat)"
+          @select="void exportSeries($event as ExportFormat)"
         />
       </div>
       <p v-if="filters.scale === 'log'" class="analytics__note" data-test="log-note">
@@ -275,9 +327,9 @@ onBeforeUnmount(() => unregister.splice(0).forEach((remove) => remove()));
         <div class="analytics__table-export">
           <ExportMenu
             :label="t('analytics.export.table')"
-            :items="chartItems"
+            :items="tableItems"
             field-id="analytics.export.table"
-            @select="exportSeries($event as ExportFormat)"
+            @select="void exportSeries($event as ExportFormat)"
           />
         </div>
       </div>

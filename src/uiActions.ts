@@ -17,15 +17,17 @@ const RIGHT = 'ADMIN_ANALYTICS_VIEW';
 /** The key under which the admin provides `registerUiAction` (`UI_ACTIONS_KEY` of oxid-fe-admin). */
 export const UI_ACTIONS_KEY = 'oxadm:ui-actions';
 
-/** The export formats that exist today (a PDF needs the `jspdf` dependency, a later step). */
-const EXPORT_FORMATS = ['xlsx', 'csv'] as const;
+/** The data files; a PDF (chart image and table) exists for the chart and the rankings, not for the table. */
+const FILE_FORMATS = ['xlsx', 'csv'] as const;
 
-const FORMAT: UiActionParamLike = {
+const format = (values: readonly string[]): UiActionParamLike => ({
   name: 'format',
   type: 'enum',
-  values: [...EXPORT_FORMATS],
+  values: [...values],
   required: true,
-};
+});
+const WITH_PDF = format(['pdf', ...FILE_FORMATS]);
+const WITHOUT_PDF = format(FILE_FORMATS);
 
 const optional = (param: Omit<UiActionParamLike, 'required'>): UiActionParamLike => ({
   ...param,
@@ -60,6 +62,7 @@ const action = (
   id: string,
   label: UiActionLike['label'],
   help: UiActionLike['help'],
+  formatParam: UiActionParamLike,
   params: UiActionParamLike[],
 ): UiActionLike => ({
   id,
@@ -68,7 +71,7 @@ const action = (
   route: ROUTE,
   right: RIGHT,
   field: id,
-  params: [FORMAT, ...params],
+  params: [formatParam, ...params],
 });
 
 export const analyticsUiActions: UiActionLike[] = [
@@ -76,9 +79,10 @@ export const analyticsUiActions: UiActionLike[] = [
     'analytics.export.chart',
     { en: 'Export the analytics chart data', de: 'Analytics-Diagrammdaten exportieren' },
     {
-      en: 'Downloads the data table of the analytics curve as Excel (XLSX) or CSV for the chosen period, granularity and curve.',
-      de: 'Lädt die Datentabelle der Analytics-Kurve als Excel (XLSX) oder CSV für den gewählten Zeitraum, die Auflösung und die Kurve herunter.',
+      en: 'Downloads the analytics curve as a PDF (chart and table), or its data table as Excel (XLSX) or CSV for the chosen period, granularity and curve.',
+      de: 'Lädt die Analytics-Kurve als PDF (Diagramm und Tabelle) oder ihre Datentabelle als Excel (XLSX) oder CSV für den gewählten Zeitraum, die Auflösung und die Kurve herunter.',
     },
+    WITH_PDF,
     FILTER_PARAMS,
   ),
   action(
@@ -88,24 +92,27 @@ export const analyticsUiActions: UiActionLike[] = [
       en: 'Downloads the analytics table ("Show as table") as Excel (XLSX) or CSV for the chosen period and granularity.',
       de: 'Lädt die Analytics-Tabelle („Als Tabelle zeigen“) als Excel (XLSX) oder CSV für den gewählten Zeitraum und die Auflösung herunter.',
     },
+    WITHOUT_PDF,
     FILTER_PARAMS,
   ),
   action(
     'analytics.export.top_products',
     { en: 'Export the popular products', de: 'Beliebte Produkte exportieren' },
     {
-      en: 'Downloads the top products with their share of sales (or units, or orders) as Excel (XLSX) or CSV. limit is 3, 5, 10, 15 or 20.',
-      de: 'Lädt die Top-Produkte mit ihrem Anteil am Umsatz (oder an den Stück oder Bestellungen) als Excel (XLSX) oder CSV herunter. limit ist 3, 5, 10, 15 oder 20.',
+      en: 'Downloads the top products with their share of sales (or units, or orders) as a PDF (chart and list), Excel (XLSX) or CSV. limit is 3, 5, 10, 15 or 20.',
+      de: 'Lädt die Top-Produkte mit ihrem Anteil am Umsatz (oder an den Stück oder Bestellungen) als PDF (Diagramm und Liste), Excel (XLSX) oder CSV herunter. limit ist 3, 5, 10, 15 oder 20.',
     },
+    WITH_PDF,
     RANKING_PARAMS,
   ),
   action(
     'analytics.export.top_categories',
     { en: 'Export the popular categories', de: 'Beliebte Kategorien exportieren' },
     {
-      en: 'Downloads the top categories with their share of sales (or units, or orders) as Excel (XLSX) or CSV. limit is 3, 5, 10, 15 or 20.',
-      de: 'Lädt die Top-Kategorien mit ihrem Anteil am Umsatz (oder an den Stück oder Bestellungen) als Excel (XLSX) oder CSV herunter. limit ist 3, 5, 10, 15 oder 20.',
+      en: 'Downloads the top categories with their share of sales (or units, or orders) as a PDF (chart and list), Excel (XLSX) or CSV. limit is 3, 5, 10, 15 or 20.',
+      de: 'Lädt die Top-Kategorien mit ihrem Anteil am Umsatz (oder an den Stück oder Bestellungen) als PDF (Diagramm und Liste), Excel (XLSX) oder CSV herunter. limit ist 3, 5, 10, 15 oder 20.',
     },
+    WITH_PDF,
     RANKING_PARAMS,
   ),
 ];

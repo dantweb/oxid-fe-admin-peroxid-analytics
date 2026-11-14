@@ -5,12 +5,30 @@ import { analyticsUiActions, UI_ACTIONS_KEY } from '../../src/uiActions';
 import { analyticsUiFields } from '../../src/uiFields';
 import { mountInAdmin } from './helpers';
 
+vi.mock('../../src/export/pdf', () => ({
+  toPdf: vi.fn(async () => new Uint8Array([0x25, 0x50, 0x44, 0x46])),
+}));
+vi.mock('../../src/export/chartImage', async (original) => ({
+  ...(await original<typeof import('../../src/export/chartImage')>()),
+  svgToPng: vi.fn(async () => ({
+    dataUrl: 'data:image/png;base64,AAAA',
+    width: 1200,
+    height: 600,
+  })),
+  barsToPng: vi.fn(async () => ({
+    dataUrl: 'data:image/png;base64,BBBB',
+    width: 900,
+    height: 300,
+  })),
+}));
 vi.mock('../../src/export/download', async (original) => ({
   ...(await original<typeof import('../../src/export/download')>()),
   downloadFile: vi.fn(),
 }));
 const { downloadFile } = await import('../../src/export/download');
 const download = vi.mocked(downloadFile);
+const { toPdf } = await import('../../src/export/pdf');
+const { svgToPng, barsToPng } = await import('../../src/export/chartImage');
 
 type Handler = (args: Record<string, unknown>) => void | Promise<void>;
 
@@ -44,10 +62,15 @@ const csvLines = (content: string | Uint8Array): string[] =>
   String(content).replace('﻿', '').split('\r\n').filter(Boolean);
 const numberOf = (text: string): number => Number(text.replace(/[^0-9.-]/g, ''));
 
-beforeEach(() => download.mockClear());
+beforeEach(() => {
+  download.mockClear();
+  vi.mocked(toPdf).mockClear();
+  vi.mocked(svgToPng).mockClear();
+  vi.mocked(barsToPng).mockClear();
+});
 
 describe('the export menus of the page', () => {
-  it('the chart menu and the table menu offer XLSX and CSV, named by what they hold', async () => {
+  it('the chart menu offers PDF, XLSX and CSV, the table menu XLSX and CSV, named by what they hold', async () => {
     const { wrapper } = mountExporting();
     await flushPromises();
 
@@ -57,7 +80,11 @@ describe('the export menus of the page', () => {
         menu(wrapper, id)
           .findAll('[role="menuitem"]')
           .map((item) => item.text()),
-      ).toEqual(['XLSX — data table', 'CSV — data table']);
+      ).toEqual(
+        id === 'chart'
+          ? ['PDF — chart and table', 'XLSX — data table', 'CSV — data table']
+          : ['XLSX — data table', 'CSV — data table'],
+      );
       await menu(wrapper, id).get('[role="menu"]').trigger('keydown', { key: 'Escape' });
     }
     expect(menu(wrapper, 'chart').get('button').attributes('aria-label')).toBe(
@@ -75,7 +102,7 @@ describe('the export menus of the page', () => {
       menu(wrapper, 'top_products')
         .findAll('[role="menuitem"]')
         .map((item) => item.text()),
-    ).toEqual(['XLSX — ranked list', 'CSV — ranked list']);
+    ).toEqual(['PDF — chart and ranked list', 'XLSX — ranked list', 'CSV — ranked list']);
     expect(menu(wrapper, 'top_products').get('button').attributes('aria-label')).toBe(
       'Export popular products',
     );
@@ -171,6 +198,101 @@ describe('the export menus of the page', () => {
   });
 });
 
+describe('the PDF export', () => {
+  const pdfCall = () => vi.mocked(toPdf).mock.calls.at(-1)!;
+
+  it('the chart PDF is the chart image and the table, with the period and the footer texts', async () => {
+    const { wrapper } = mountExporting();
+    await wrapper.get('[data-test="filter-range"]').setValue('7');
+
+    await choose(wrapper, 'chart', 'pdf');
+    await flushPromises();
+
+    expect(svgToPng).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(svgToPng).mock.calls[0]![0].getAttribute('data-test')).toBe('chart-svg');
+    const [table, options] = pdfCall();
+    expect(table.title).toBe('Sales, daily');
+    expect(table.rows).toHaveLength(7);
+    expect(table.meta).toEqual([
+      expect.stringMatching(/^Period: \d{4}-\d{2}-\d{2} – \d{4}-\d{2}-\d{2}$/),
+      'Granularity: Daily',
+      'Curve: Sales',
+      'Scale: Linear',
+      'Source: Demo data',
+    ]);
+    expect(options.image).toEqual({
+      dataUrl: 'data:image/png;base64,AAAA',
+      width: 1200,
+      height: 600,
+    });
+    expect(options.created).toMatch(/^Created \d{4}-\d{2}-\d{2} by peroxid-admin analytics$/);
+    expect(options.pageOf(2, 5)).toBe('Page 2 of 5');
+    expect(options.demoNote).toContain('Demo data');
+    const { name, type, content } = lastDownload();
+    expect(name).toMatch(/^analytics-sales-daily-.*\.pdf$/);
+    expect(type).toBe('application/pdf');
+    expect(Array.from(content as Uint8Array)).toEqual([0x25, 0x50, 0x44, 0x46]);
+  });
+
+  it('a German PDF has German meta lines and footer', async () => {
+    const { wrapper } = mountExporting('de');
+
+    await choose(wrapper, 'chart', 'pdf');
+    await flushPromises();
+
+    const [table, options] = pdfCall();
+    expect(table.meta[0]).toMatch(/^Zeitraum: /);
+    expect(options.created).toMatch(/^Erstellt am \d{4}-\d{2}-\d{2} von peroxid-admin analytics$/);
+    expect(options.pageOf(1, 2)).toBe('Seite 1 von 2');
+  });
+
+  it('the ranking PDF has the pie as the chart image, or the bars drawn from their colours', async () => {
+    const { wrapper } = mountExporting();
+
+    await choose(wrapper, 'top_products', 'pdf');
+    await flushPromises();
+    expect(vi.mocked(svgToPng).mock.calls.at(-1)![0].getAttribute('data-test')).toBe('pie-svg');
+    expect(barsToPng).not.toHaveBeenCalled();
+    expect(pdfCall()[0].columns.map((c) => c.label)).toEqual([
+      'Rank',
+      'Product',
+      'Article number',
+      'Sales',
+      'Share',
+    ]);
+    expect(lastDownload().name).toMatch(/^analytics-top-products-sales-.*\.pdf$/);
+
+    await wrapper
+      .get('[data-test="popular-products"] [data-test="popular-chart"]')
+      .setValue('bars');
+    await choose(wrapper, 'top_products', 'pdf');
+    await flushPromises();
+    expect(barsToPng).toHaveBeenCalledTimes(1);
+    const rows = vi.mocked(barsToPng).mock.calls[0]![0];
+    expect(rows).toHaveLength(6);
+    expect(rows.at(-1)).toMatchObject({ label: 'Others', kind: 'others' });
+    expect(pdfCall()[1].image?.dataUrl).toBe('data:image/png;base64,BBBB');
+  });
+
+  it('the pdf action exports the chart in the state its args name; the table action refuses a PDF', async () => {
+    const { handlers } = mountExporting();
+
+    await handlers.get('analytics.export.chart')!({
+      format: 'pdf',
+      period: '90',
+      granularity: 'weekly',
+    });
+
+    expect(lastDownload().name).toMatch(/^analytics-sales-weekly-.*\.pdf$/);
+    expect(pdfCall()[0].rows.length).toBeLessThan(15);
+    await expect(handlers.get('analytics.export.table')!({ format: 'pdf' })).rejects.toThrow(
+      'format',
+    );
+    await handlers.get('analytics.export.top_categories')!({ format: 'pdf', limit: '3' });
+    expect(lastDownload().name).toMatch(/^analytics-top-categories-sales-.*\.pdf$/);
+  });
+});
+
 describe('the UI actions of the page', () => {
   it('registers the four handlers when the page opens and unregisters them when it closes', () => {
     const { wrapper, handlers, unregistered } = mountExporting();
@@ -257,7 +379,7 @@ describe('the UI actions of the page', () => {
       expect(action.params.find((param) => param.name === 'format')).toEqual({
         name: 'format',
         type: 'enum',
-        values: ['xlsx', 'csv'],
+        values: action.id === 'analytics.export.table' ? ['xlsx', 'csv'] : ['pdf', 'xlsx', 'csv'],
         required: true,
       });
     }

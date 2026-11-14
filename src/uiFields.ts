@@ -62,8 +62,8 @@ const EXPORT_FIELDS: UiFieldLike[] = [
     'analytics.export.chart',
     { en: 'Export chart and data', de: 'Diagramm und Daten exportieren' },
     {
-      en: 'The download button next to the chart title. Downloads the data table of the curve as Excel (XLSX) or CSV.',
-      de: 'Der Download-Knopf neben dem Diagrammtitel. Lädt die Datentabelle der Kurve als Excel (XLSX) oder CSV herunter.',
+      en: 'The download button next to the chart title. Downloads the curve as a PDF (chart and table), or its data table as Excel (XLSX) or CSV.',
+      de: 'Der Download-Knopf neben dem Diagrammtitel. Lädt die Kurve als PDF (Diagramm und Tabelle) oder ihre Datentabelle als Excel (XLSX) oder CSV herunter.',
     },
   ),
   field(
@@ -78,16 +78,16 @@ const EXPORT_FIELDS: UiFieldLike[] = [
     'analytics.export.top_products',
     { en: 'Export popular products', de: 'Beliebte Produkte exportieren' },
     {
-      en: 'The download button of the Popular products section. Downloads the ranked list with "Others" as Excel (XLSX) or CSV.',
-      de: 'Der Download-Knopf des Abschnitts Beliebte Produkte. Lädt die Rangliste mit „Übrige“ als Excel (XLSX) oder CSV herunter.',
+      en: 'The download button of the Popular products section. Downloads the chart and the ranked list with "Others" as a PDF, or the list as Excel (XLSX) or CSV.',
+      de: 'Der Download-Knopf des Abschnitts Beliebte Produkte. Lädt das Diagramm und die Rangliste mit „Übrige“ als PDF oder die Liste als Excel (XLSX) oder CSV herunter.',
     },
   ),
   field(
     'analytics.export.top_categories',
     { en: 'Export popular categories', de: 'Beliebte Kategorien exportieren' },
     {
-      en: 'The download button of the Popular categories section. Downloads the ranked list with "Others" as Excel (XLSX) or CSV.',
-      de: 'Der Download-Knopf des Abschnitts Beliebte Kategorien. Lädt die Rangliste mit „Übrige“ als Excel (XLSX) oder CSV herunter.',
+      en: 'The download button of the Popular categories section. Downloads the chart and the ranked list with "Others" as a PDF, or the list as Excel (XLSX) or CSV.',
+      de: 'Der Download-Knopf des Abschnitts Beliebte Kategorien. Lädt das Diagramm und die Rangliste mit „Übrige“ als PDF oder die Liste als Excel (XLSX) oder CSV herunter.',
     },
   ),
 ];
