@@ -99,6 +99,42 @@ describe('AnalyticsView', () => {
     expect(wrapper.get('[data-test="chart-line"]').attributes('d')).toMatch(/^M.* C/);
   });
 
+  it('the curve "Share of top N products" is drawn in percent with the N of the products section', async () => {
+    const wrapper = mountInAdmin(AnalyticsView);
+    await nextTick();
+    const options = wrapper.get('[data-test="filter-metric"]').findAll('option');
+    expect(options.at(-1)!.text()).toBe('Share of top 5 products');
+
+    await wrapper.get('[data-test="filter-metric"]').setValue('topShare');
+
+    expect(wrapper.get('[data-test="chart-title"]').text()).toBe('Share of top 5 products, daily');
+    expect(wrapper.get('[data-test="chart-svg"]').attributes('aria-label')).toBe(
+      'Share of top 5 products over 30 buckets',
+    );
+    const ticks = wrapper.findAll('[data-test="y-tick"]').map((tick) => tick.text());
+    expect(ticks.every((tick) => tick.endsWith('%'))).toBe(true);
+    await wrapper.get('[data-test="chart-svg"]').trigger('keydown', { key: 'End' });
+    const rows = wrapper.findAll('[data-test^="readout-"]');
+    expect(rows).toHaveLength(7);
+    expect(rows[0]!.attributes('data-test')).toBe('readout-topShare');
+    expect(rows[0]!.find('strong').text()).toMatch(/^\d+\.\d %$/);
+
+    await wrapper.get('[data-test="popular-products"] [data-test="popular-topn"]').setValue('10');
+    expect(wrapper.get('[data-test="chart-title"]').text()).toBe('Share of top 10 products, daily');
+  });
+
+  it('the table has a column for the share of the top products', async () => {
+    const wrapper = mountInAdmin(AnalyticsView);
+    await nextTick();
+
+    const headers = wrapper
+      .findAll('[data-test="analytics-table"] thead th')
+      .map((th) => th.text());
+
+    expect(headers.at(-1)).toBe('Share of top 5 products');
+    expect(wrapper.get('[data-test="table-row"]').findAll('td').at(-1)!.text()).toMatch(/ %$/);
+  });
+
   it('the stat tiles compare with the previous period', () => {
     const wrapper = mountInAdmin(AnalyticsView);
 

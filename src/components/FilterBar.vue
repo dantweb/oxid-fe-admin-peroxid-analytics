@@ -2,10 +2,12 @@
 import { useI18n } from 'vue-i18n';
 import { CHART_KINDS } from '../series/curve';
 import { METRICS } from '../series/metrics';
+import { SHARE_CURVE } from '../series/shareCurve';
 import { RANGES, type AnalyticsFilters } from '../useAnalytics';
 
 /** One row above the charts, period first; every chart and tile below follows the same slice. */
 const filters = defineModel<AnalyticsFilters>({ required: true });
+defineProps<{ topN: number }>();
 const { t } = useI18n();
 </script>
 
@@ -44,6 +46,7 @@ const { t } = useI18n();
         <option v-for="metric in METRICS" :key="metric.id" :value="metric.id">
           {{ t(`analytics.metrics.${metric.id}`) }}
         </option>
+        <option :value="SHARE_CURVE">{{ t('analytics.metrics.topShare', { n: topN }) }}</option>
       </select>
     </label>
     <label>

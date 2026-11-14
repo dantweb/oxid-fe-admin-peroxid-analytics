@@ -9,7 +9,7 @@ import { bucketKey, bucketKeys, inRange, type Granularity } from './buckets';
 export type MetricId =
   'orders' | 'sales' | 'customers' | 'ordersPerCustomer' | 'salesPerCustomer' | 'averageOrder';
 
-export type Unit = 'count' | 'currency' | 'ratio';
+export type Unit = 'count' | 'currency' | 'ratio' | 'percent';
 
 export interface MetricDefinition {
   id: MetricId;

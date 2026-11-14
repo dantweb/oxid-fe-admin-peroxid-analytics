@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { inRange, lastDays } from '../../src/series/buckets';
+import { bucketKeys, inRange, lastDays } from '../../src/series/buckets';
 import { generateDemoData } from '../../src/ecw/demoData';
-import { DEMO_PRODUCTS, demoRankingEntries } from '../../src/ecw/demoRanking';
+import { DEMO_PRODUCTS, demoRankingEntries, demoTopShare } from '../../src/ecw/demoRanking';
 import type { RankMeasure } from '../../src/series/ranking';
 
 const TODAY = new Date(2026, 10, 4, 15, 30);
@@ -71,5 +71,38 @@ describe('demoRankingEntries', () => {
 
     expect(demoRankingEntries(data, 'products', before, 'sales')).toEqual([]);
     expect(demoRankingEntries(data, 'categories', before, 'orders')).toEqual([]);
+  });
+});
+
+describe('demoTopShare', () => {
+  const daily = bucketKeys(range.from, range.to, 'daily');
+
+  it('is one share per bucket of the calendar, in percent, deterministic', () => {
+    const shares = demoTopShare(data, range, 'daily', 5, 'sales');
+
+    expect(shares).toHaveLength(daily.length);
+    expect(shares).toEqual(demoTopShare(data, range, 'daily', 5, 'sales'));
+    expect(Math.min(...shares)).toBeGreaterThan(0);
+    expect(Math.max(...shares)).toBeLessThanOrEqual(100);
+  });
+
+  it('a larger top holds a larger share, and all products hold 100 percent', () => {
+    const five = demoTopShare(data, range, 'daily', 5, 'sales');
+    const twenty = demoTopShare(data, range, 'daily', 20, 'sales');
+
+    expect(twenty.every((share, at) => share >= five[at]!)).toBe(true);
+    expect(twenty.every((share) => share === 100)).toBe(true); // the demo catalogue has 18 products
+  });
+
+  it('weekly folds into the ISO weeks of the range', () => {
+    expect(demoTopShare(data, range, 'weekly', 5, 'units')).toHaveLength(
+      bucketKeys(range.from, range.to, 'weekly').length,
+    );
+  });
+
+  it('a bucket without orders is 0, not missing', () => {
+    const before = lastDays(new Date(2020, 0, 10), 3);
+
+    expect(demoTopShare(data, before, 'daily', 5, 'sales')).toEqual([0, 0, 0]);
   });
 });

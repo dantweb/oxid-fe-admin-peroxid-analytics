@@ -23,8 +23,10 @@ export type { Analytics, AnalyticsFilters, RangeDays, UseAnalyticsOptions } from
 export {
   fetchLiveRanking,
   fetchLiveSeries,
+  fetchLiveTopShare,
   RANKING_QUERIES,
   SERIES_QUERY,
+  SHARE_QUERY,
   toRanking,
   toSeries,
 } from './liveSource';
@@ -46,7 +48,11 @@ export type {
   Ranking,
   TopN,
 } from './series/ranking';
-export { DEMO_PRODUCTS, demoRankingEntries } from './ecw/demoRanking';
+export { DEMO_PRODUCTS, demoRankingEntries, demoTopShare } from './ecw/demoRanking';
+export { SHARE_CURVE } from './series/shareCurve';
+export type { CurveId } from './series/shareCurve';
+export { useTopShare } from './useTopShare';
+export type { ShareContext, TopShare } from './useTopShare';
 export { POPULAR_CHARTS, usePopular } from './usePopular';
 export type { Popular, PopularChart, PopularContext, PopularState } from './usePopular';
 export { analyticsUiFields } from './uiFields';

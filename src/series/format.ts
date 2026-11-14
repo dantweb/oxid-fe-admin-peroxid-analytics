@@ -18,6 +18,13 @@ export function formatValue(
       notation: compact && Math.abs(value) >= 10_000 ? 'compact' : 'standard',
     }).format(value);
   }
+  if (unit === 'percent') {
+    const text = new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: compact ? 0 : 1,
+    }).format(value);
+    return `${text} %`;
+  }
   if (unit === 'ratio') {
     return new Intl.NumberFormat(locale, {
       maximumFractionDigits: 2,

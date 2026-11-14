@@ -2,7 +2,9 @@ import { computed, reactive, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { generateDemoData } from './ecw/demoData';
 import type { AnalyticsData } from './ecw/models';
 import { fetchLiveSeries, liveClient, type Executor, type SourceKind } from './liveSource';
+import type { ShareContext } from './useTopShare';
 import type { PopularContext } from './usePopular';
+import type { CurveId } from './series/shareCurve';
 import { lastDays, previousRange, type Granularity } from './series/buckets';
 import type { ChartKind } from './series/curve';
 import { computeSeries, totals, type MetricId, type Series } from './series/metrics';
@@ -15,7 +17,7 @@ export const RANGES: readonly RangeDays[] = [7, 30, 90, 180];
 export interface AnalyticsFilters {
   rangeDays: RangeDays;
   granularity: Granularity;
-  metric: MetricId;
+  metric: CurveId;
   scale: ScaleKind;
   chart: ChartKind;
 }
@@ -33,6 +35,8 @@ export interface Analytics {
   ready: Promise<void>;
   /** what the popular products and categories share with the page: the period, the demo data, the client */
   popularContext: PopularContext;
+  /** the popular context and the granularity, for the curve "Share of top N products" */
+  shareContext: ShareContext;
 }
 
 let cached: AnalyticsData | null = null;
@@ -107,5 +111,16 @@ export function useAnalytics({
   const current = computed(() => totals(series.value));
   const previous = computed(() => totals(live.value?.previous ?? demoPrevious.value));
   const popularContext: PopularContext = { range, data: demo, client };
-  return { filters, series, current, previous, source, currency, ready, popularContext };
+  const shareContext: ShareContext = { ...popularContext, granularity: () => filters.granularity };
+  return {
+    filters,
+    series,
+    current,
+    previous,
+    source,
+    currency,
+    ready,
+    popularContext,
+    shareContext,
+  };
 }

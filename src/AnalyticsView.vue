@@ -6,9 +6,11 @@ import LineChart, { type ReadoutRow } from './components/LineChart.vue';
 import RankingSection from './components/RankingSection.vue';
 import StatTile from './components/StatTile.vue';
 import { formatBucket, formatValue } from './series/format';
-import { METRICS, metricById, type MetricId } from './series/metrics';
+import { METRICS, metricById, type MetricId, type Unit } from './series/metrics';
+import { SHARE_CURVE, SHARE_UNIT, type CurveId } from './series/shareCurve';
 import { useAnalytics } from './useAnalytics';
 import { usePopular } from './usePopular';
+import { useTopShare } from './useTopShare';
 
 /**
  * The analytics page: one filter row (period, granularity, curve, scale, chart type), five stat tiles for the period,
@@ -17,9 +19,10 @@ import { usePopular } from './usePopular';
  * Below: the popular products and categories of the same period (src/components/RankingSection.vue).
  */
 const { t, locale } = useI18n();
-const { filters, series, current, previous, source, popularContext } = useAnalytics();
+const { filters, series, current, previous, source, popularContext, shareContext } = useAnalytics();
 const products = usePopular('products', popularContext);
 const categories = usePopular('categories', popularContext);
+const share = useTopShare(shareContext, products.state);
 
 const TILES: readonly MetricId[] = [
   'orders',
@@ -29,17 +32,39 @@ const TILES: readonly MetricId[] = [
   'averageOrder',
 ];
 
-const metric = computed(() => metricById(filters.metric));
-const metricLabel = (id: MetricId): string => t(`analytics.metrics.${id}`);
+const metricLabel = (id: CurveId): string =>
+  id === SHARE_CURVE
+    ? t('analytics.metrics.topShare', { n: products.state.topN })
+    : t(`analytics.metrics.${id}`);
 
-/** The plotted metric first, then the others — one readout, every series. */
-const readout = computed<ReadoutRow[]>(() =>
-  [metric.value, ...METRICS.filter((entry) => entry.id !== metric.value.id)].map((entry) => ({
+/** One curve as the chart, the readout and the table know it. */
+interface Curve {
+  id: CurveId;
+  unit: Unit;
+  values: number[];
+}
+
+/** Every curve of the page: the metrics of the series and the share of the top N products. */
+const curves = computed<Curve[]>(() => [
+  ...METRICS.map((entry) => ({
     id: entry.id,
-    label: metricLabel(entry.id),
-    values: series.value.values[entry.id],
     unit: entry.unit,
+    values: series.value.values[entry.id],
   })),
+  { id: SHARE_CURVE, unit: SHARE_UNIT, values: share.values.value },
+]);
+const plotted = computed(() => curves.value.find((curve) => curve.id === filters.metric)!);
+
+/** The plotted curve first, then the others — one readout, every series. */
+const readout = computed<ReadoutRow[]>(() =>
+  [plotted.value, ...curves.value.filter((curve) => curve.id !== plotted.value.id)]
+    .filter((curve) => curve.id !== SHARE_CURVE || plotted.value.id === SHARE_CURVE)
+    .map((curve) => ({
+      id: curve.id,
+      label: metricLabel(curve.id),
+      values: curve.values,
+      unit: curve.unit,
+    })),
 );
 
 const chartTitle = computed(() =>
@@ -56,7 +81,7 @@ const chartTitle = computed(() =>
     <p class="analytics__note" data-test="analytics-note" :data-source="source">
       {{ t(source === 'live' ? 'analytics.liveNote' : 'analytics.demoNote') }}
     </p>
-    <FilterBar v-model="filters" />
+    <FilterBar v-model="filters" :top-n="products.state.topN" />
     <div class="analytics__stats fold-grid" data-test="analytics-stats">
       <StatTile
         v-for="id in TILES"
@@ -75,10 +100,10 @@ const chartTitle = computed(() =>
       </p>
       <LineChart
         :keys="series.keys"
-        :values="series.values[filters.metric]"
+        :values="plotted.values"
         :scale="filters.scale"
         :chart="filters.chart"
-        :unit="metric.unit"
+        :unit="plotted.unit"
         :granularity="filters.granularity"
         :name="metricLabel(filters.metric)"
         :readout="readout"
@@ -90,16 +115,16 @@ const chartTitle = computed(() =>
             <thead>
               <tr>
                 <th scope="col">{{ t('analytics.table.bucket') }}</th>
-                <th v-for="entry in METRICS" :key="entry.id" scope="col">
-                  {{ metricLabel(entry.id) }}
+                <th v-for="curve in curves" :key="curve.id" scope="col">
+                  {{ metricLabel(curve.id) }}
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(key, at) in series.keys" :key="key" data-test="table-row">
                 <th scope="row">{{ formatBucket(key, filters.granularity, locale) }}</th>
-                <td v-for="entry in METRICS" :key="entry.id" class="analytics__number">
-                  {{ formatValue(series.values[entry.id][at] ?? 0, entry.unit, locale) }}
+                <td v-for="curve in curves" :key="curve.id" class="analytics__number">
+                  {{ formatValue(curve.values[at] ?? 0, curve.unit, locale) }}
                 </td>
               </tr>
             </tbody>

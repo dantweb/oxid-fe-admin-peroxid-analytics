@@ -1,5 +1,11 @@
-import { inRange } from '../series/buckets';
-import type { PopularSubject, RankedEntry, RankMeasure } from '../series/ranking';
+import { addDays } from './demoData';
+import { bucketKeys, inRange, type Granularity } from '../series/buckets';
+import {
+  roundShares,
+  type PopularSubject,
+  type RankedEntry,
+  type RankMeasure,
+} from '../series/ranking';
 import { createRandom } from './random';
 import type { AnalyticsData } from './models';
 
@@ -164,4 +170,50 @@ export function demoRankingEntries(
   }));
   const entries = subject === 'products' ? products : categoryEntries(products);
   return entries.filter((entry) => entry.value > 0);
+}
+
+const DAYS_IN_WEEK = 7;
+
+const parseDay = (key: string): Date => {
+  const [y, m, d] = key.split('-').map(Number) as [number, number, number];
+  return new Date(y, m - 1, d);
+};
+
+/** The ids of the `limit` best products of the period, in the order of the ranking (value, then title). */
+function topProductIds(values: readonly number[], limit: number): Set<string> {
+  return new Set(
+    DEMO_PRODUCTS.map((product, at) => ({ product, value: values[at]! }))
+      .sort((a, b) => b.value - a.value || a.product.title.localeCompare(b.product.title, 'en'))
+      .slice(0, limit)
+      .map(({ product }) => product.id),
+  );
+}
+
+/**
+ * The share (percent, one decimal) that the period's top `limit` products hold in every bucket of the calendar. A
+ * bucket is cut to the period, its values are laid out like a period of their own; a bucket without orders is 0.
+ */
+export function demoTopShare(
+  data: AnalyticsData,
+  range: { from: Date; to: Date },
+  granularity: Granularity,
+  limit: number,
+  measure: RankMeasure,
+): number[] {
+  const top = topProductIds(productValues(data, range, measure), limit);
+  return bucketKeys(range.from, range.to, granularity).map((key) => {
+    const start = parseDay(key);
+    const end = addDays(start, granularity === 'weekly' ? DAYS_IN_WEEK - 1 : 0);
+    const bucket = {
+      from: start < range.from ? range.from : start,
+      to: end > range.to ? range.to : end,
+    };
+    const values = productValues(data, bucket, measure);
+    const total = values.reduce((sum, value) => sum + value, 0);
+    const held = values.reduce(
+      (sum, value, at) => (top.has(DEMO_PRODUCTS[at]!.id) ? sum + value : sum),
+      0,
+    );
+    return roundShares([held, total - held], total)[0]!;
+  });
 }

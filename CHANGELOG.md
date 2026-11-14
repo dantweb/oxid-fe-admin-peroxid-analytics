@@ -8,6 +8,9 @@
   that names every slice; "Others" makes the chart show the whole and the shares add up to exactly 100 %. Choices per
   section: **Top N** (3, 5, 10, 15, 20; default 5) and the measure (sales, units sold, number of orders).
   Variants count for their parent product, a sale for the main category only (rules of the shop module).
+- **Share of top N products** curve (unit percent) in the curve selector, drawn by the existing renderer, with a column in
+  the table. N and the measure are those of the Popular products section. Live: `adminAnalyticsTopShareSeries`; demo:
+  deterministic (`demoTopShare`).
 - Sources: the shop's `adminAnalyticsTopProducts` / `adminAnalyticsTopCategories` (module `peroxid_analytics`), a
   deterministic demo ranking (`src/ecw/demoRanking.ts`) that adds up to the demo orders of the period without it.
 - **uiFields**: the five filters and the three controls of each section have `data-field` ids and descriptors (en, de),

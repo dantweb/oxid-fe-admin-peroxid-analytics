@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { analyticsPlugin } from '../../src';
 import {
   fetchLiveRanking,
+  fetchLiveTopShare,
   fetchLiveSeries,
   liveClient,
   rememberClient,
   RANKING_QUERIES,
   SERIES_QUERY,
+  SHARE_QUERY,
   toRanking,
   toSeries,
   type Executor,
@@ -251,5 +253,58 @@ describe('fetchLiveRanking', () => {
 
     expect(await fetchLiveRanking(refusing, 'products', range, 5, 'sales')).toBeNull();
     expect(await fetchLiveRanking(empty, 'categories', range, 5, 'sales')).toBeNull();
+  });
+});
+
+describe('fetchLiveTopShare', () => {
+  const range = { from: new Date(2026, 10, 3), to: new Date(2026, 10, 5) };
+  const keys = ['2026-11-03', '2026-11-04', '2026-11-05'];
+
+  function shareClient(): Executor & { calls: Record<string, unknown>[] } {
+    const calls: Record<string, unknown>[] = [];
+    return {
+      calls,
+      execute: async <T>(query: string, variables?: Record<string, unknown>): Promise<T> => {
+        calls.push({ query, ...variables });
+        return {
+          adminAnalyticsTopShareSeries: {
+            buckets: [
+              { key: '2026-11-05', value: 5, total: 10, share: 50 },
+              { key: '2026-11-03', value: 3, total: 4, share: 75 },
+            ],
+          },
+        } as unknown as T;
+      },
+    };
+  }
+
+  it('asks with whole days, granularity, limit and measure and aligns the shares on the page’s keys', async () => {
+    const client = shareClient();
+
+    const shares = await fetchLiveTopShare(client, range, 'weekly', 10, 'units', keys);
+
+    expect(shares).toEqual([75, 0, 50]); // a missing bucket is 0
+    expect(client.calls[0]).toEqual({
+      query: SHARE_QUERY,
+      from: '2026-11-03',
+      to: '2026-11-05',
+      granularity: 'WEEKLY',
+      limit: 10,
+      measure: 'UNITS',
+    });
+    expect(SHARE_QUERY).toContain('adminAnalyticsTopShareSeries(');
+    expect(SHARE_QUERY).toContain('buckets { key share }');
+  });
+
+  it('answers null when the shop refuses or answers nothing', async () => {
+    const refusing: Executor = {
+      execute: async () => {
+        throw new Error('permission_denied');
+      },
+    };
+    const empty: Executor = { execute: async <T>(): Promise<T> => ({}) as unknown as T };
+
+    expect(await fetchLiveTopShare(refusing, range, 'daily', 5, 'sales', keys)).toBeNull();
+    expect(await fetchLiveTopShare(empty, range, 'daily', 5, 'sales', keys)).toBeNull();
   });
 });

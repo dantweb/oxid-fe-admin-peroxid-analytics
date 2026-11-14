@@ -177,3 +177,44 @@ export async function fetchLiveRanking(
     return null; // intentionally: the demo ranking is the fallback of every refusal
   }
 }
+
+export const SHARE_QUERY = `query AdminAnalyticsTopShareSeries($from: DateTime!, $to: DateTime!, $granularity: AdminAnalyticsGranularity!, $limit: Int!, $measure: AdminAnalyticsRankMeasure!) {
+  adminAnalyticsTopShareSeries(from: $from, to: $to, granularity: $granularity, limit: $limit, measure: $measure) {
+    buckets { key share }
+  }
+}`;
+
+interface LiveShareAnswer {
+  adminAnalyticsTopShareSeries?: { buckets: { key: string; share: number }[] };
+}
+
+/**
+ * The share of the period's top N products per bucket, laid on the page's own bucket keys (a bucket the shop did not
+ * name is 0). `null` when the module is not there, the right is missing or the shop refused.
+ */
+export async function fetchLiveTopShare(
+  client: Executor,
+  range: { from: Date; to: Date },
+  granularity: Granularity,
+  limit: number,
+  measure: RankMeasure,
+  keys: readonly string[],
+): Promise<number[] | null> {
+  try {
+    const answer = await client.execute<LiveShareAnswer>(SHARE_QUERY, {
+      from: dayOf(range.from),
+      to: dayOf(range.to),
+      granularity: granularity === 'weekly' ? 'WEEKLY' : 'DAILY',
+      limit,
+      measure: measure.toUpperCase(),
+    });
+    const buckets = answer?.adminAnalyticsTopShareSeries?.buckets;
+    if (!buckets) {
+      return null;
+    }
+    const byKey = new Map(buckets.map((bucket) => [bucket.key, bucket.share]));
+    return keys.map((key) => byKey.get(key) ?? 0);
+  } catch {
+    return null; // intentionally: the demo shares are the fallback of every refusal
+  }
+}
