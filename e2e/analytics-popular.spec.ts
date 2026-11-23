@@ -63,6 +63,131 @@ test.describe('the colours of the pie', () => {
   }
 });
 
+test.describe('every popular item opens its page (Sprint 48)', () => {
+  const route = (page: Page): Promise<string> => page.evaluate(() => window.__route);
+  /** A mark on `window` survives only while the document is the same: proves the router, not a page load, navigated. */
+  const markDocument = (page: Page): Promise<void> =>
+    page.evaluate(() => {
+      (window as unknown as { __mark: number }).__mark = 1;
+    });
+  const stillSameDocument = (page: Page): Promise<unknown> =>
+    page.evaluate(() => (window as unknown as { __mark?: number }).__mark);
+
+  test('a click on a pie slice opens the product page in the SPA', async ({ page }) => {
+    await open(page, 'source=live');
+    await markDocument(page);
+
+    await section(page, 'products').getByTestId('pie-slice-link').first().click();
+
+    expect(await route(page)).toBe('/catalogue/products/p01');
+    expect(await stillSameDocument(page)).toBe(1);
+  });
+
+  test('a click on a legend entry opens the product page', async ({ page }) => {
+    await open(page, 'source=live');
+    await markDocument(page);
+
+    await section(page, 'products').getByTestId('pie-legend-item').nth(1).locator('a').click();
+
+    expect(await route(page)).toBe('/catalogue/products/p02');
+    expect(await stillSameDocument(page)).toBe(1);
+  });
+
+  test('a click on a bar opens the product page', async ({ page }) => {
+    await open(page, 'source=live');
+    await section(page, 'products').getByTestId('popular-chart').selectOption('bars');
+    await markDocument(page);
+
+    await section(page, 'products').getByTestId('rank-bar').nth(2).locator('a').click();
+
+    expect(await route(page)).toBe('/catalogue/products/p03');
+    expect(await stillSameDocument(page)).toBe(1);
+  });
+
+  test('a click on a name in the list opens the product page', async ({ page }) => {
+    await open(page, 'source=live');
+
+    await section(page, 'products').getByTestId('popular-link').first().click();
+
+    expect(await route(page)).toBe('/catalogue/products/p01');
+  });
+
+  test('a category opens its page from the pie, the legend, the bars and the list', async ({
+    page,
+  }) => {
+    await open(page, 'source=live');
+    const categories = section(page, 'categories');
+    const first = await categories.getByTestId('popular-link').first().getAttribute('href');
+    expect(first).toMatch(/^\/catalogue\/categories\/c-/);
+
+    await categories.getByTestId('pie-slice-link').first().click();
+    expect(await route(page)).toBe(first);
+    await categories.getByTestId('pie-legend-item').first().locator('a').click();
+    expect(await route(page)).toBe(first);
+    await categories.getByTestId('popular-chart').selectOption('bars');
+    await categories.getByTestId('rank-bar').first().locator('a').click();
+    expect(await route(page)).toBe(first);
+  });
+
+  test('the legend link is reachable with the keyboard, shows a focus ring and the readout of the slice', async ({
+    page,
+  }) => {
+    await open(page, 'source=live');
+    const link = section(page, 'products').getByTestId('pie-legend-item').first().locator('a');
+
+    await link.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+
+    await expect(link).toBeFocused();
+    await expect(section(page, 'products').getByTestId('pie-readout')).toContainText(
+      'Kuyichi Jeans Mick',
+    );
+    const outline = await link.evaluate((node) => getComputedStyle(node).outlineStyle);
+    expect(outline).not.toBe('none');
+    await page.keyboard.press('Enter');
+    expect(await route(page)).toBe('/catalogue/products/p01');
+  });
+
+  test('a slice link is reached with Tab and opens with Enter', async ({ page }) => {
+    await open(page, 'source=live');
+    const slice = section(page, 'products').getByTestId('pie-slice-link').first();
+
+    await slice.focus();
+
+    await expect(slice).toBeFocused();
+    await expect(slice).toHaveAttribute('aria-label', 'Open Kuyichi Jeans Mick');
+    await page.keyboard.press('Enter');
+    expect(await route(page)).toBe('/catalogue/products/p01');
+  });
+
+  test('Others and the demo data are not links', async ({ page }) => {
+    await open(page, 'source=live');
+    const products = section(page, 'products');
+    await expect(products.getByTestId('pie-legend-item').last().locator('a')).toHaveCount(0);
+    await expect(products.getByTestId('pie-slice-link')).toHaveCount(5);
+    await products.getByTestId('popular-chart').selectOption('bars');
+    await expect(products.getByTestId('rank-bar').last().locator('a')).toHaveCount(0);
+
+    await open(page);
+    await expect(page.locator('[data-test="pie"] a')).toHaveCount(0);
+    await expect(page.getByTestId('popular-link')).toHaveCount(0);
+  });
+
+  for (const theme of THEMES) {
+    test(`axe finds nothing with links in the pie and in the bars (${theme})`, async ({ page }) => {
+      await open(page, `theme=${theme}&source=live`);
+      await expectNoViolations(page);
+      await section(page, 'products').getByTestId('pie-slice-link').first().focus();
+      await expectNoViolations(page);
+      for (const subject of ['products', 'categories'] as const) {
+        await section(page, subject).getByTestId('popular-chart').selectOption('bars');
+      }
+      await expectNoViolations(page);
+    });
+  }
+});
+
 test.describe('the sections', () => {
   test('both sections show a headline, a pie with a legend and the sorted list of the top 5', async ({
     page,

@@ -1,4 +1,5 @@
 import type { DOMWrapper } from '@vue/test-utils';
+import { flushPromises } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import PieChart, { type PieSlice } from '../../src/components/PieChart.vue';
 import { mountInAdmin } from './helpers';
@@ -126,5 +127,88 @@ describe('PieChart', () => {
     );
 
     expect(wrapper.findAll('.pie__swatch')[1]!.attributes('style')).toContain('rgb(2, 2, 2)');
+  });
+
+  describe('links (Sprint 48)', () => {
+    const linked = (key: string, label: string, share: number): PieSlice => ({
+      ...slice(key, label, share),
+      href: `/catalogue/products/${key}`,
+    });
+    const slices = (): PieSlice[] => [
+      linked('p1', 'Alpha', 60),
+      slice('others', 'Others', 40, 'others'),
+    ];
+
+    it('a slice with an href is a real link with the href and the name "Open <label>", others stays plain', () => {
+      const wrapper = mountPie(slices());
+
+      const links = wrapper.findAll('[data-test="pie-slice-link"]');
+      expect(links).toHaveLength(1);
+      expect(links[0]!.attributes('href')).toBe('/catalogue/products/p1');
+      expect(links[0]!.attributes('aria-label')).toBe('Open Alpha');
+      expect(links[0]!.find('[data-test="pie-slice"]').exists()).toBe(true);
+      expect(wrapper.findAll('[data-test="pie-slice"]')).toHaveLength(2);
+    });
+
+    it('names the accessible name in German', async () => {
+      const wrapper = mountPie(slices());
+      wrapper.vm.$i18n.locale = 'de';
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.get('[data-test="pie-slice-link"]').attributes('aria-label')).toBe(
+        'Alpha öffnen',
+      );
+    });
+
+    it('a click on a slice navigates in the SPA (no page load) and a modified click is left to the browser', async () => {
+      const wrapper = mountPie(slices());
+      const router = wrapper.vm.$router;
+
+      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      wrapper.get('[data-test="pie-slice-link"]').element.dispatchEvent(plain);
+      await flushPromises();
+      expect(plain.defaultPrevented).toBe(true);
+      expect(router.currentRoute.value.path).toBe('/catalogue/products/p1');
+
+      await router.push('/');
+      const modified = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+      wrapper.get('[data-test="pie-slice-link"]').element.dispatchEvent(modified);
+      await flushPromises();
+      expect(modified.defaultPrevented).toBe(false);
+      expect(router.currentRoute.value.path).toBe('/');
+    });
+
+    it('the focus on a slice link shows the same readout as the pointer', async () => {
+      const wrapper = mountPie(slices());
+
+      await wrapper.get('[data-test="pie-slice-link"]').trigger('focus');
+      expect(wrapper.get('[data-test="pie-readout"]').text()).toBe('Alpha: 600 units (60.0 %)');
+      await wrapper.get('[data-test="pie-slice-link"]').trigger('blur');
+      expect(wrapper.get('[data-test="pie-readout"]').text()).toBe('');
+    });
+
+    it('the legend entry with an href is a link (label, value, share inside), others is not and keeps its tab stop', async () => {
+      const wrapper = mountPie(slices());
+
+      const items = wrapper.findAll('[data-test="pie-legend-item"]');
+      const link = items[0]!.get('a');
+      expect(link.attributes('href')).toBe('/catalogue/products/p1');
+      expect(link.text()).toContain('Alpha');
+      expect(link.text()).toContain('60.0 %');
+      expect(items[0]!.attributes('tabindex')).toBeUndefined();
+      expect(items[1]!.find('a').exists()).toBe(false);
+      expect(items[1]!.attributes('tabindex')).toBe('0');
+      await link.trigger('focusin');
+      expect(wrapper.get('[data-test="pie-readout"]').text()).toBe('Alpha: 600 units (60.0 %)');
+    });
+
+    it('a pie without hrefs keeps the img role and has no links; with links it is a group so that the links stay reachable', () => {
+      const plain = mountPie([slice('a', 'Alpha', 100)]);
+      const withLinks = mountPie(slices());
+
+      expect(plain.find('a').exists()).toBe(false);
+      expect(plain.get('[data-test="pie-svg"]').attributes('role')).toBe('img');
+      expect(withLinks.get('[data-test="pie-svg"]').attributes('role')).toBe('group');
+    });
   });
 });

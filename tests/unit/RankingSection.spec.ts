@@ -261,4 +261,48 @@ describe('RankingSection', () => {
     expect(wrapper.text()).not.toContain('No category');
     expect(wrapper.findAll('[data-test="pie-slice"]')).toHaveLength(3); // two items and Others
   });
+
+  describe('links in the chart (Sprint 48)', () => {
+    it('every pie slice, legend entry and list name of a live product opens its page; others and the deleted product do not', async () => {
+      const { wrapper } = await mountSection('products', shop());
+
+      const slices = wrapper.findAll('[data-test="pie-slice-link"]');
+      expect(slices.map((link) => link.attributes('href'))).toEqual(['/catalogue/products/p1']);
+      expect(slices[0]!.attributes('aria-label')).toBe('Open Alpha');
+      const legend = wrapper
+        .findAll('[data-test="pie-legend-item"] a')
+        .map((link) => link.attributes('href'));
+      expect(legend).toEqual(['/catalogue/products/p1']);
+      expect(wrapper.findAll('[data-test="popular-link"]')).toHaveLength(1);
+    });
+
+    it('the bars link to the product the same way', async () => {
+      const { wrapper } = await mountSection('products', shop());
+      await wrapper.get('[data-test="popular-chart"]').setValue('bars');
+
+      expect(
+        wrapper.findAll('[data-test="rank-bar"] a').map((link) => link.attributes('href')),
+      ).toEqual(['/catalogue/products/p1']);
+    });
+
+    it('a category opens its category page from the pie and the bars', async () => {
+      const { wrapper } = await mountSection('categories', shop());
+      expect(
+        wrapper.findAll('[data-test="pie-slice-link"]').map((link) => link.attributes('href')),
+      ).toEqual(['/catalogue/categories/p1']);
+      await wrapper.get('[data-test="popular-chart"]').setValue('bars');
+
+      expect(
+        wrapper.findAll('[data-test="rank-bar"] a').map((link) => link.attributes('href')),
+      ).toEqual(['/catalogue/categories/p1']);
+    });
+
+    it('with demo data nothing in the chart is a link', async () => {
+      const { wrapper } = await mountSection('products');
+      expect(wrapper.findAll('[data-test="pie"] a')).toHaveLength(0);
+      await wrapper.get('[data-test="popular-chart"]').setValue('bars');
+
+      expect(wrapper.findAll('[data-test="rank-bars"] a')).toHaveLength(0);
+    });
+  });
 });

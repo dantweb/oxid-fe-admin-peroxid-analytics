@@ -14,6 +14,8 @@ import { mockShop } from './shop';
 declare global {
   interface Window {
     __shopCalls: Record<string, unknown>[];
+    /** the path of the router after each navigation: the harness has no router-view, the spec reads it here */
+    __route: string;
     /** the handlers the page registered for the admin's UI actions (the admin's `registerUiAction`) */
     __uiActions: Map<string, (args: Record<string, unknown>) => void | Promise<void>>;
   }
@@ -28,6 +30,7 @@ if (query.get('sidebar') === 'open' || query.get('sidebar') === 'folded') {
   document.documentElement.dataset.sidebar = query.get('sidebar')!;
 }
 window.__shopCalls = [];
+window.__route = '';
 window.__uiActions = new Map();
 if (query.get('source') === 'live') {
   rememberClient(mockShop(window.__shopCalls));
@@ -42,6 +45,9 @@ const router = createRouter({
     { path: '/catalogue/products/:id', component: stub },
     { path: '/catalogue/categories/:id', component: stub },
   ],
+});
+router.afterEach((to) => {
+  window.__route = to.path;
 });
 // the address of the harness page is the deep link: its query is the route query of the analytics page
 const i18n = createI18n({
