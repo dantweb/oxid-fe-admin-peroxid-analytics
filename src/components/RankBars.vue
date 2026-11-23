@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { RouterLink } from 'vue-router';
 import { formatShare } from '../series/format';
 
 /** One bar as the page names it: label and value are already in the language of the page. */
@@ -11,6 +12,8 @@ export interface BarRow {
   /** percent, one decimal */
   share: number;
   kind: 'item' | 'others';
+  /** the page the row opens; null or missing: plain text ("Others", demo data) */
+  href?: string | null;
 }
 
 /**
@@ -22,6 +25,8 @@ const props = defineProps<{ rows: BarRow[]; name: string }>();
 const { locale } = useI18n();
 
 const widest = computed(() => Math.max(...props.rows.map((row) => row.share), 0));
+const rowProps = (row: BarRow): { to: string } | Record<string, never> =>
+  row.href ? { to: row.href } : {};
 const widthOf = (row: BarRow): string =>
   `${widest.value > 0 ? Math.round((row.share / widest.value) * 1000) / 10 : 0}%`;
 </script>
@@ -31,19 +36,25 @@ const widthOf = (row: BarRow): string =>
     <li
       v-for="row in rows"
       :key="row.key"
-      class="bars__row"
       :class="{ 'bars__row--others': row.kind === 'others' }"
       data-test="rank-bar"
     >
-      <span class="bars__label">{{ row.label }}</span>
-      <span class="bars__track" aria-hidden="true">
-        <span
-          class="bars__fill"
-          :style="{ '--bar-width': widthOf(row) }"
-          data-test="rank-bar-fill"
-        />
-      </span>
-      <span class="bars__value">{{ row.valueText }} · {{ formatShare(row.share, locale) }}</span>
+      <component
+        :is="row.href ? RouterLink : 'div'"
+        v-bind="rowProps(row)"
+        class="bars__row"
+        :class="{ 'bars__row--link': row.href }"
+      >
+        <span class="bars__label">{{ row.label }}</span>
+        <span class="bars__track" aria-hidden="true">
+          <span
+            class="bars__fill"
+            :style="{ '--bar-width': widthOf(row) }"
+            data-test="rank-bar-fill"
+          />
+        </span>
+        <span class="bars__value">{{ row.valueText }} · {{ formatShare(row.share, locale) }}</span>
+      </component>
     </li>
   </ul>
 </template>
@@ -63,6 +74,22 @@ const widthOf = (row: BarRow): string =>
   align-items: center;
   font-size: 0.875rem;
   color: var(--oxfe-color-text, #333333);
+}
+.bars__row--link {
+  text-decoration: none;
+  border-radius: var(--oxfe-radius-sm, 4px);
+}
+.bars__row--link .bars__label {
+  /* the text colour, not the link blue: the label also sits on the tinted hover and focus background */
+  text-decoration: underline;
+}
+.bars__row--link:hover,
+.bars__row--link:focus-visible {
+  background: color-mix(in srgb, var(--oxfe-color-primary, #2471a3) 10%, transparent);
+}
+.bars__row--link:focus-visible {
+  outline: 2px solid var(--oxfe-color-primary, #2471a3);
+  outline-offset: 2px;
 }
 .bars__label {
   overflow-wrap: anywhere;

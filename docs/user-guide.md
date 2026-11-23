@@ -86,7 +86,7 @@ Rules for the numbers:
 - A variant counts for its parent product.
 - A sale counts for the main category of the product only. Sales of a product without a category are the line "No category".
 - The shares and "Others" add up to 100 %.
-- With live data, a product and a category are links to their pages. A product that you deleted after the sale has no link.
+- With live data, a product and a category are links to their pages. This applies to the name in the list, to each slice of the pie, to each entry of the pie legend and to each bar. You can use the keyboard: press Tab to a link and press Enter. "Others" and a product that you deleted after the sale have no link.
 
 Each slice of the pie has its own colour. Do not use the colour alone. Read the legend.
 

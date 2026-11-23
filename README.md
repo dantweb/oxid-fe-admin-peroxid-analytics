@@ -40,6 +40,13 @@ counts for the main category of its product only. With the shop module the numbe
 demo orders is shown. The controls have `data-field` ids (`analytics.products.topN`, …) and `uiFields` descriptors for
 the admin assistant (`src/uiFields.ts`).
 
+With the shop module, every item is a link: a name in the list, a pie slice, a pie legend entry and a bar open the
+product page (`/catalogue/products/<id>`) or the category page (`/catalogue/categories/<id>`). One function
+(`hrefOf` in `RankingSection.vue`) gives the address; the chart components get it as `href` of a slice or a row.
+"Others", an item without an id and demo data have no link. A legend entry and a bar are a `RouterLink`. A pie slice is
+an SVG `<a>` with the real `href` and the accessible name "Open <title>"; a plain click goes through the router (no
+page load), a click with a modifier key is left to the browser. The hover and focus read-out of the pie is kept.
+
 ## Live data from the shop (optional)
 
 The plugin stays a demo without a backend. With the OXID module **`peroxid_analytics`**

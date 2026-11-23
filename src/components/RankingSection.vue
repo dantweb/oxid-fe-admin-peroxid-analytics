@@ -49,6 +49,15 @@ const labelOf = (slice: RankSlice, at: number): string => {
   return noCategory ? t('analytics.popular.noCategory') : slice.title;
 };
 
+/** One address per item for the list, the pie, its legend and the bars; "Others" and demo items have none. */
+const linkable = computed(() => props.popular.source.value === 'live');
+const hrefOf = (id: string | null): string | null => {
+  if (!linkable.value || id === null) {
+    return null;
+  }
+  return props.subject === 'products' ? `/catalogue/products/${id}` : `/catalogue/categories/${id}`;
+};
+
 const pieSlices = computed<PieSlice[]>(() =>
   rankingSlices(ranking.value).map((slice, at) => ({
     key: slice.key,
@@ -56,6 +65,7 @@ const pieSlices = computed<PieSlice[]>(() =>
     valueText: valueText(slice.value),
     share: slice.share,
     kind: slice.kind,
+    href: slice.kind === 'others' ? null : hrefOf(ranking.value.items[at]?.id ?? null),
   })),
 );
 const barRows = computed<BarRow[]>(() => pieSlices.value);
@@ -76,13 +86,6 @@ const headline = computed(() =>
   }),
 );
 
-const linkable = computed(() => props.popular.source.value === 'live');
-const hrefOf = (id: string | null): string | null => {
-  if (!linkable.value || id === null) {
-    return null;
-  }
-  return props.subject === 'products' ? `/catalogue/products/${id}` : `/catalogue/categories/${id}`;
-};
 const titleOf = (id: string | null, title: string): string =>
   id === null && props.subject === 'categories' ? t('analytics.popular.noCategory') : title;
 const field = (name: string): string => `analytics.${props.subject}.${name}`;

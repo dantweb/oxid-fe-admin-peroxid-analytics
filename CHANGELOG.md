@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Popular items open their page** (Sprint 48): with the shop's data the pie slices, the pie legend entries and the bars
+  are links, like the name in the list: a product opens `/catalogue/products/<id>`, a category its category page.
+  One `hrefOf` serves all four; `PieSlice` and `BarRow` get an optional `href`. A slice is an SVG `<a>` (real `href`,
+  name "Open <title>" / "<title> öffnen", router navigation on a plain click); the pie is a `group` instead of an `img`
+  when it holds links. "Others", deleted products and demo data stay text. Hover and focus read-out, `data-field` and
+  `data-test` hooks are unchanged. Mocked e2e: click on slice, legend, bar, list name and category, keyboard, axe.
+
 - **Popular products** and **Popular categories** (Sprint 37): two sections below the curve with a headline ("Top 5
   products: 42.3 % of sales"), a sorted list (rank, title, value, share; products and categories link to their pages
   with the shop's data), and a chart with a **Pie / Bars** switch. The pie is hand-drawn SVG in theme tokens with a legend
